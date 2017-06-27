@@ -1,0 +1,329 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title></title>
+    <link rel="stylesheet" href="/css/tether.min.css">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <style>
+        .container-fluid {
+            padding-top: 16px;
+        }
+
+        table {
+            width: auto;
+        }
+
+        table td {
+            white-space: nowrap;
+        }
+
+        table th, table td {
+            padding-left: 12px;
+        }
+
+        table td:last-child {
+            width: 100%;
+        }
+
+        table td.dob {
+            text-align: center;
+            padding-right: 12px;
+        }
+
+        .wristbandSequenceError {
+            border-bottom: 1px solid #F00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div><span>Adults: </span><span data-bind="text: attendees.adults"></span></div>
+        <div><span>Minors: </span><span data-bind="text: attendees.minors"></span></div>
+        <div>Legal Drinking DOB: <span data-bind="text: onThisDay"></span></div>
+        <input id="search-input" data-bind="textInput: search" class="form-control form-control-sm" style="margin-top: 16px; margin-bottom: 16px;" />
+        <table>
+            <thead style="background-color: #000; color: #FFF">
+                <th>Entry</th>
+                <th>Department</th>
+                <th>Name</th>
+                <th>DOB</th>
+                <th>Wristband</th>
+                <th>&nbsp;</th>
+                <th>Removed</th>
+                <th>EMail</th>
+                <th>Registration</th>
+                <th>Arrival</th>
+                <th width="99%">&nbsp;</th>
+            </thead>
+            <tbody data-bind="foreach: attendees.filtered">
+                <tr>
+                    <td data-bind="text: entry_date" style="padding-left: 12px; padding-right: 12px"></td>
+                    <td data-bind="text: department" style="overflow: hidden; white-space: nowrap"></td>
+                    <td data-bind="text: name.fullName"></td>
+                    <td class="dob" data-bind="text: format_dob, style: { 'color': style_fg_dob, 'background-color': style_bg_dob }"></td>
+                    <td class="form-inline">
+                        <!-- ko if: (wristband() || '') == '' -->
+                        <input data-bind="value: wristbandInput" class="form-control form-control-sm" maxlength="4" size="4" />
+                        <!-- /ko -->
+                        <!-- ko if: (wristband() || '') != '' -->
+                        <samp data-bind="text: wristband"></samp>
+                        <!-- /ko -->
+                    </td>
+                    <td>
+                        <!-- ko if: (wristband() || '') == '' -->
+                        <i data-bind="click: addWristband, event: { keypress: handleKeyPress }" class="fa fa-check pointer pull-right" style="margin-top: 8px; margin-right: 14px; cursor: pointer"></i>
+                        <!-- /ko -->
+                        <!-- ko if: (wristband() || '') != '' -->
+                        <i data-bind="click: removeWristband" class="fa fa-trash-o pointer pull-right" style="margin-top: 8px; margin-right: 14px; cursor: pointer"></i>
+                        <!-- /ko -->
+                    </td>
+                    <td>
+                        <samp data-bind="text: removedWristbands" class="form-inline"></samp>
+                    </td>
+                    <td data-bind="text: emailAddress"></td>
+                    <td><samp data-bind="text: id" class="pull-right"></samp></td>
+                    <td data-bind="text: format_arrival"></td>
+                    <td>&nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script type="text/javascript" src="/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="/js/tether-1.3.3.min.js"></script>
+    <script type="text/javascript" src="/js/bootstrap-4.0.0-Alpha.6.min.js"></script>
+    <script type="text/javascript" src="/js/lodash-4.17.4.js"></script>
+    <script type="text/javascript" src="/js/moment-2.18.1.min.js"></script>
+    <script type="text/javascript" src="/js/knockout-3.4.2.min.js"></script>
+    <script type="text/javascript" src="/js/knockout.mapping-2.4.1.min.js"></script>
+    <script type="text/javascript">
+        (function ($) {
+            var model = {
+                attendees: ko.observableArray().extend({
+                    rateLimit: {
+                        timeout: 100, method: "notifyWhenChangesStop"
+                    }
+                }),
+                search: ko.observable(null).extend({
+                    rateLimit: {
+                        timeout: 350
+                    }
+                }),
+                onThisDay: moment()
+                    .startOf('day')
+                    .subtract(21, 'years')
+                    .format("YYYY.MM.DD")
+            };
+
+            model.attendees.adults = ko.computed(function () {
+                return _.filter(model.attendees(), function (attendee) {
+                    return ((attendee.wristband() || '') != '' && moment()
+                        .startOf('day')
+                        .subtract(21, 'years')
+                        .isSameOrAfter(moment(attendee.dob())));
+                }).length;
+            });
+
+            model.attendees.minors = ko.computed(function () {
+                return _.filter(model.attendees(), function (attendee) {
+                    return ((attendee.wristband() || '') != ''
+                        && moment()
+                            .startOf('day')
+                            .subtract(21, 'years')
+                            .isBefore(moment(attendee.dob())))
+                        && moment()
+                            .startOf('day')
+                            .subtract(13, 'years')
+                            .isSameOrAfter(moment(attendee.dob()));
+                }).length;
+            });
+
+            model.attendees.filtered = ko.computed(function () {
+                var search = model.search();
+                if ((search || '') == "*") {
+                    return _.sortBy(_.filter(model.attendees(), function (o) {
+                        return (o.wristband() || '') != '';
+                    }), ['wristband']);
+                }
+
+                if (!search || search == '' || search.length < 4) {
+                    return [];
+                }
+
+                var exp = new RegExp(search, 'gi');
+                return _.filter(model.attendees(), function (o) {
+                    return _.some(['fullName','wristband','id'], function (s) {
+                        if (!o.name[s]) {
+                            return exp.test(o[s]());
+                        }
+
+                        return exp.test(o.name[s]());
+                    });
+                });
+            }, model);
+
+            var attendee = function (data, parent) {
+                var self = {};
+                ko.mapping.fromJS(data, {}, self);
+
+                self.addWristband = function () {
+                    var wristband = self.wristbandInput();
+                    if (wristband.length == 4) {
+                        self.wristband(wristband);
+                        if (self.arrivalDate() == "0001-01-01T00:00:00") {
+                            self.arrivalDate(moment().format("YYYY-MM-DDTHH:mm:ss"));
+                        }
+                    }
+                    self.wristbandInput(null);
+                    model.search(null);
+                    $('#search-input').focus();
+
+                    $.ajax({
+                        url: "/api/attendees/" + self.id() + "/setWristband",
+                        type: "POST",
+                        data: JSON.stringify({
+                            wristband: wristband,
+                            date: self.arrivalDate()
+                        }),
+                        dataType: 'json',
+                        contentType: "application/json; charset=utf-8"
+                    });
+                };
+                
+                self.handleKeyPress = function(data, event) {
+                    var keyCode = (event.which ? event.which : event.keyCode);
+                    if (keyCode === 13) {
+                        self.removeWristband();
+                        return false;
+                    }
+                    return true;
+                }
+
+                self.wristbandTemp = ko.observable(null);
+
+                self.wristbandInput = ko.pureComputed({
+                    read: function () {
+                        return self.wristband() || self.wristbandTemp();
+                    },
+                    write: function (value) {
+                        self.wristbandTemp(value);
+                        console.log(value);
+                    },
+                    owner: self
+                }).extend({
+                    rateLimit: {
+                        timeout: 100, method: "notifyWhenChangesStop"
+                    }
+                });
+
+                self.removeWristband = function () {
+                    $.ajax({
+                        url: "/api/attendees/" + self.id() + "/setWristband",
+                        type: "POST",
+                        data: JSON.stringify({
+                            wristband: null,
+                            date: self.arrivalDate()
+                        }),
+                        dataType: 'json',
+                        contentType: "application/json; charset=utf-8",
+                        success: function (data) { }
+                    });
+
+                    var removed = self.removedWristbands();
+                    if (!removed) {
+                        self.removedWristbands(
+                            [self.wristband()]
+                        );
+                        self.wristband(null);
+                        return;
+                    }
+                    self.removedWristbands(
+                        _(removed).concat(self.wristband())
+                    );
+                    self.wristband(null);
+                };
+
+                self.entry_date = ko.pureComputed(function () {
+                    var date = self.permittedEntryDate();
+                    if (date == "0001-01-01T00:00:00") {
+                        date = "2017-06-14";
+                    }
+
+                    return moment(date).format("DD ddd");
+                }, model);
+
+                self.style_bg_dob = ko.pureComputed(function () {
+                    var dob = self.dob();
+                    if (dob == "0001-01-01T00:00:00") {
+                        dob = moment().startOf('day');
+                    }
+
+                    var dates = [
+                        moment().startOf('day').subtract(21, 'years'),
+                        moment().startOf('day').subtract(18, 'years'),
+                        moment().startOf('day').subtract(13, 'years')
+                    ];
+
+                    var idx = _.findLastIndex(dates, function (date) {
+                        return moment(dob).isAfter(date);
+                    });
+
+                    return ['yellow', 'orange', 'red'][idx];
+                }, model);
+
+                self.style_fg_dob = ko.pureComputed(function () {
+                    var dob = self.dob();
+                    if (dob == "0001-01-01T00:00:00") {
+                        dob = moment().startOf('day');
+                    }
+
+                    var dates = [
+                        moment().startOf('day').subtract(21, 'years'),
+                        moment().startOf('day').subtract(18, 'years'),
+                        moment().startOf('day').subtract(13, 'years')
+                    ];
+
+                    var idx = _.findLastIndex(dates, function (date) {
+                        return moment(dob).isAfter(date);
+                    });
+
+                    return ['black', 'black', 'white'][idx];
+                }, model);
+
+                self.format_dob = ko.pureComputed(function () {
+                    var dob = self.dob();
+                    if (dob == "0001-01-01T00:00:00") {
+                        return "--";
+                    }
+
+                    return moment(dob).format("YYYY-MM-DD");
+                }, model);
+
+                self.format_arrival = ko.pureComputed(function () {
+                    var date = self.arrivalDate();
+                    if (date == "0001-01-01T00:00:00") {
+                        return null;
+                    }
+
+                    return moment(date).format("YYYY-MM-DD HH:mm");
+                }, model);
+
+                return self;
+            };
+
+            model.bind = function (data) {
+                $.each(data.attendees, function (idx, item) {
+                    model.attendees.push(new attendee(item, model));
+                });
+            };
+
+            $(document).ready(function () {
+                ko.applyBindings(model);
+                $.getJSON("/api/attendees", model.bind);
+            });
+        }(jQuery));
+    </script>
+</body>
+</html>
