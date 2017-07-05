@@ -29,7 +29,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Target Name="CompileFrontend" BeforeTargets="Build">
+  <ItemGroup>
+    <Folder Include="Middleware\WebSockets\" />
+  </ItemGroup>
+  <Target Name="CompileFrontend" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <Exec Command="yarn run build" WorkingDirectory="frontend" />
     <ItemGroup>
       <FrontendFiles Include="$(MSBuildProjectDirectory)\frontend\build\**" />

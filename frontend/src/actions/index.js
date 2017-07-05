@@ -12,6 +12,7 @@ export function fetchAttendees() {
 }
 
 export const COMMIT_ATTENDEE = "COMMIT_ATTENDEE";
+export const COMMIT_FAILED = "COMMIT_FAILED";
 export function commitAttendeeState(self, attendee, stateful_callback =  () => {}) {
 	const request = axios.post(
 		`http://127.0.0.1:54000/api/attendees/${attendee.id}/setWristband`,
@@ -22,9 +23,17 @@ export function commitAttendeeState(self, attendee, stateful_callback =  () => {
 		}
 	);
 
-	return {
-		type: COMMIT_ATTENDEE,
-		payload: { self, attendee, request, stateful_callback }
+	return function (dispatch) {
+		return request.then(
+			response => dispatch({
+				type: COMMIT_ATTENDEE,
+				payload: { self, attendee, response, stateful_callback }
+			}),
+			error => dispatch({
+				type: COMMIT_FAILED,
+				payload: { self, error }
+			})
+		);
 	}
 }
 

@@ -67,10 +67,10 @@
 					.ToArray();
 			}
 
-			if (attendee.ArrivalDate == DateTime.MinValue)
+			/*if (attendee.ArrivalDate == DateTime.MinValue)
 			{
 				attendee.ArrivalDate = DateTime.Parse(dto.Date);
-			}
+			}*/
 
 			collection.Update(attendee);
 

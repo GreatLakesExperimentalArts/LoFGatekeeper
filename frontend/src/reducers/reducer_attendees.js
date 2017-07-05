@@ -7,7 +7,13 @@ import {
 
 import moment from 'moment';
 import each from 'lodash/each';
-import _ from 'lodash';
+import filter from 'lodash/filter';
+import findIndex from 'lodash/findIndex';
+import map from 'lodash/map';
+import max from 'lodash/max';
+import flow from 'lodash/flow';
+import padStart from 'lodash/padStart';
+import property from 'lodash/property';
 
 export default function(state = { items: [] }, action) {
 	switch (action.type) {
@@ -60,17 +66,17 @@ export default function(state = { items: [] }, action) {
 				let self = action.payload.self;
 				let age = action.payload.age;
 
-				let candidates = _.filter(state.items,
+				let candidates = filter(state.items,
 					(attendee) => isAdult(attendee.age) === isAdult(age)
 				);
 
-				let next = _.max(_.map(candidates, _.flow(
-					_.property('wristband'),
+				let next = max(map(candidates, flow(
+					property('wristband'),
 					(wristband) => isAdult(age) ? wristband : (wristband || 'M000').substring(1, 3),
 					parseInt
 				))) + 1;
 
-				let wristband_next = _.padStart(next.toString(), 4, isAdult(age) ? '0000' : 'M000');
+				let wristband_next = padStart(next.toString(), 4, isAdult(age) ? '0000' : 'M000');
 
 				self.setState({ wristband_next }, action.payload.stateful_callback);
 
@@ -81,7 +87,7 @@ export default function(state = { items: [] }, action) {
 			{
 				let self = action.payload.self;
 
-				let wristband_found = _.findIndex(state.items, (attendee) =>
+				let wristband_found = findIndex(state.items, (attendee) =>
 					attendee.wristband === action.payload.wristband &&
 					attendee.id !== self.props.attendee.id
 				) > -1;

@@ -10,7 +10,7 @@ import {
 } from "../actions/index";
 
 import moment from 'moment';
-import _ from 'lodash';
+import without from 'lodash/without';
 
 class AttendeeItem extends Component {
 	constructor(props) {
@@ -57,8 +57,16 @@ class AttendeeItem extends Component {
 	}
 
 	onWristbandKeyDown(event) {
-		if (event.key === "Backspace" && this.state.wristband_temp === "") {
+		let value = this.state.wristband_temp;
+		if (event.key === "Backspace" && value === "") {
 			this.dobInput.focus();
+			return;
+		}
+
+		if (event.key === "Enter" && value.length === 4 && (
+			value === this.state.wristband_next || !this.state.wristband_found
+		)) {
+			this.onWristbandCommit(event);
 		}
 	}
 
@@ -175,7 +183,7 @@ class AttendeeItem extends Component {
 
 		let attendee = this.props.attendee;
 		attendee.wristband = this.state.wristband_temp;
-		attendee.removedWristbands = _.without(
+		attendee.removedWristbands = without(
 			attendee.removedWristbands || [],
 			this.state.wristband_temp);
 		

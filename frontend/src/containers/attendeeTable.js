@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from "redux";
 import { Table } from 'reactstrap';
-// import VisibilitySensor from 'react-visibility-sensor';
 import AttendeeItem from './attendeeItem';
 import { fetchAttendees } from "../actions/index";
 
@@ -54,11 +53,15 @@ class AttendeeTable extends Component {
 		var exp = new RegExp(this.props.search, 'gi');
 
 		return _.filter(attendees, function (o) {
-			return _.some(['fullName','wristband','id'], function (s) {
-				if (!o.name[s]) {
-					return exp.test(o[s]);
+			return _.some(['fullName','wristband','removedWristbands','id'], function (s) {
+				switch (s) {
+					case 'fullName':
+						return exp.test(o.name[s]);
+					case 'removedWristbands':
+						return _.findIndex(o.removedWristbands, (i) => exp.test(i || null)) > -1;
+					default:
+						return exp.test(o[s] || (s === 'wristband' ? '' : null));
 				}
-				return exp.test(o.name[s]);
 			});
 		});
 	}
