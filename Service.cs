@@ -2,14 +2,15 @@
 {
 	using APIology.ServiceProvider;
 	using Autofac;
-	using Controllers;
+	using LiteDB;
 	using Microsoft.AspNetCore.Builder;
 	using Microsoft.AspNetCore.Hosting;
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
-	using Raven.Client.Embedded;
+	using NameParser;
 	using Serilog;
 	using System;
+	using System.IO;
 	using System.Reflection;
 	using Topshelf;
 
@@ -56,18 +57,28 @@
 					));
 		}
 
+		public class HumanNameProxy
+		{
+			public string FullName { get; set; }
+		}
+
 		public override void BuildDependencyContainer(ContainerBuilder builder)
 		{
-			var store = new EmbeddableDocumentStore {
-				UseEmbeddedHttpServer = true,
-				DefaultDatabase = "AttendeeData"
-			};
-			store.Configuration.Port = 54001;
-			store.Initialize();
+			string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			Directory.SetCurrentDirectory(exeDir);
 
-			//store.RegisterListener(new Raven.Client.Listeners.IDocumentStoreListener)
+			BsonMapper.Global.RegisterType(
+				name => name.FullName,
+				bson => {
+					if (bson.IsString)
+						return new HumanName(bson.AsString);
 
-			builder.RegisterInstance(store)
+					var proxy = BsonMapper.Global.ToObject<HumanNameProxy>(bson.AsDocument);
+					return new HumanName(proxy.FullName);
+				}
+			);
+
+			builder.Register(context => new LiteDatabase(@"LoFData.db"))
 				.OwnedByLifetimeScope()
 				.SingleInstance();
 
@@ -76,19 +87,25 @@
 
 		public override void ConfigureAspNetCore(IServiceCollection services)
 		{
+			services.AddCors();
 			services.AddMvc()
 				.AddApplicationPart(typeof(Service).GetTypeInfo().Assembly);
 		}
 
 		public override void BuildAspNetCoreDependencySubcontainer(ContainerBuilder builder)
 		{
-			builder.RegisterInstance(LazyContainer.Value.Resolve<EmbeddableDocumentStore>())
+			builder.RegisterInstance(LazyContainer.Value.Resolve<LiteDatabase>())
 				.ExternallyOwned()
 				.SingleInstance();
 		}
 
 		public override void BuildAspNetCoreApp(IApplicationBuilder app, IHostingEnvironment env)
 		{
+			app.UseCors(builder => 
+				builder.AllowAnyOrigin()
+					.AllowAnyHeader()
+					.AllowAnyMethod());
+			
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

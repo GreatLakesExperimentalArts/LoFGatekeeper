@@ -1,0 +1,131 @@
+@import '../../node_modules/bootstrap/scss/bootstrap.scss';
+@import 'https://fonts.googleapis.com/icon?family=Material+Icons';
+@import 'mixins';
+
+html, body {
+    padding: 0;
+    min-height: 100%;
+    height: 100%;
+}
+
+$footer-height: 54px;
+
+div#root {
+    &.container-fluid,
+    > .container-fluid,
+    .wrapper {
+        padding: 0;
+        min-height: 100%;
+        height: 100%;
+    }
+
+    .wrapper {
+        margin: 0 auto -$footer-height;
+    }
+
+    .footer {
+        position: relative;
+        margin-top: -$footer-height;
+        height: $footer-height;
+        background-color: $body-bg;
+        border-top: 1px solid rgba($black,.075);
+        width: 100%;
+
+        .pagination {
+            padding-top: 8px;
+            margin-bottom: 0;
+        }
+    }
+
+    .container-fluid {
+        padding: 0;
+    }
+
+    table {
+        width: auto;
+
+        td, th {
+            white-space: nowrap;
+            padding: .2rem 1rem .2rem 0;
+        }
+        th {
+            background-color: $table-inverse-bg;
+            color: $table-inverse-color;
+        }
+        td:first-child, th:first-child {
+            padding-left: 20px;
+        }
+        td:last-child {
+            width: 100%;
+        }
+        td.buttons {
+            padding-left: 0;
+            padding-right: 0.5rem;
+        }
+    }
+
+    input {
+        @extend .form-control-sm;
+        
+        &.form-control-sm {
+            @extend .form-control;
+            @include placeholder {
+                opacity: 0.3;
+            }
+        }
+
+        @include stateful-input('.dob', 7.0em);
+
+        @include stateful-input('.wristband', 3.5em) {
+            padding-right: 0;
+        }
+    }
+    .row {
+        margin: 0;
+    }
+    div.col-md-12 {
+        padding: 0;
+    }
+}
+
+.placeholder {
+    position: relative;
+
+    &::after {
+        @extend .form-control-sm;
+        font-family: $font-family-monospace;
+        position: absolute;
+        left: 1px;
+        top: 0px;
+        content: attr(data-placeholder);
+        pointer-events: none;
+        opacity: 0.3;
+    }
+}
+
+.attendeeSearch {
+    margin: 1em;
+
+    .material-icons {
+        color: rgba(0, 0, 0, 0.75);
+    }
+}
+
+.material-icons {
+    color: rgba(0, 0, 0, 0.25);
+
+    &.disabled {
+        color: rgba(0, 0, 0, 0);
+        cursor: default;
+    }
+
+    @include hover {
+        color: rgba(0, 0, 0, 0.75);
+        cursor: pointer;
+
+        &.disabled {
+            color: rgba(0, 0, 0, 0);
+            cursor: default;
+        }
+    }
+}

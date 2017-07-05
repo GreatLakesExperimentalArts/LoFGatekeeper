@@ -4,16 +4,18 @@
     <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
     <OutputType>Exe</OutputType>
     <TargetFramework>net461</TargetFramework>
+    <DefaultItemExcludes>$(DefaultItemExcludes);frontend\**\*.*</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="LiteDB" Version="3.1.1" />
     <PackageReference Include="NameParserSharp" Version="1.2.0" />
-    <PackageReference Include="RavenDB.Embedded" Version="3.5.4-patch-35202" />
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="1.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.WebSockets.Server" Version="0.1.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="2.1.2" />
+    <PackageReference Include="Serilog.Exceptions" Version="2.4.1" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="1.0.0" />
-    <PackageReference Include="Serilog.Sinks.Async" Version="1.0.1" />
-    <PackageReference Include="Serilog.Sinks.Seq" Version="3.3.1" />
+    <PackageReference Include="Serilog.Sinks.Async" Version="1.1.0" />
+    <PackageReference Include="Serilog.Sinks.Seq" Version="3.3.2" />
     <PackageReference Include="Topshelf" Version="4.0.3" />
   </ItemGroup>
   <ItemGroup>
@@ -26,8 +28,12 @@
     <None Update="config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="wwwroot\**">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
+  <Target Name="CompileFrontend" BeforeTargets="Build">
+    <Exec Command="yarn run build" WorkingDirectory="frontend" />
+    <ItemGroup>
+      <FrontendFiles Include="$(MSBuildProjectDirectory)\frontend\build\**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FrontendFiles)" DestinationFiles="@(FrontendFiles->'$(OutputPath)\wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" /> 
+  </Target>
 </Project>

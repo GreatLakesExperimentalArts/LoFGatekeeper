@@ -290,3 +290,8 @@ __pycache__/
 logs/
 
 *.csv
+
+frontend/node_modules/
+frontend/build/
+frontend/**/*.css
+yarn.lock

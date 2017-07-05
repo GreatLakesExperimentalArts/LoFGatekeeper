@@ -1,7 +1,7 @@
 ﻿namespace LoFGatekeeper.Controllers
 {
+	using LiteDB;
 	using Microsoft.AspNetCore.Mvc;
-	using Raven.Client.Embedded;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System;
@@ -9,14 +9,14 @@
 	[Route("api/[controller]")]
 	public class AttendeesController : Controller
 	{
-		private EmbeddableDocumentStore Store { get; set; }
+		private LiteDatabase db { get; set; }
 
-		public AttendeesController(EmbeddableDocumentStore store)
+		public AttendeesController(LiteDatabase liteDBInstance)
 		{
-			Store = store;
+			db = liteDBInstance;
 		}
 
-		private class EmptyStringsLast : IComparer<string>
+		internal class EmptyStringsLast : IComparer<string>
 		{
 			public int Compare(string a, string b)
 			{
@@ -29,63 +29,50 @@
 		[HttpGet]
 		public dynamic Get()
 		{
-			var all = new List<Attendee>();
-			using (var session = Store.OpenSession("AttendeeData"))
-			{
-				var i = 0;
-				var chunk = null as List<Attendee>;
-				var query = session.Query<Attendee>();
-
-				do
-				{
-					chunk = query.Skip(i++ * 128).ToList();
-					all.AddRange(chunk);
-				}
-				while (chunk.Count >= 128);
-
-				all = all
-					.OrderBy(a => a.Wristband, new EmptyStringsLast())
-					.ThenBy(a => a.Department, new EmptyStringsLast())
-					.ThenBy(a => a.Name.Last)
-					.ThenBy(a => a.Name.First)
-					.ToList();
-
-				return new {
-					attendees = all
-				};
-			}
+			return db.GetCollection<Attendee>("attendees")
+				.FindAll()
+				.OrderBy(a => a.Wristband, new EmptyStringsLast())
+				.ThenBy(a => a.Department, new EmptyStringsLast())
+				.ThenBy(a => a.Name.Last)
+				.ThenBy(a => a.Name.First)
+				.ToList();
 		}
 
 		public class SetWristbandDto
 		{
 			public string Wristband { get; set; }
+			public string[] RemovedWristbands { get; set; }
 			public string Date { get; set; }
 		}
 
 		[HttpPost("{id}/setWristband")]
 		public IActionResult SetWristband(string id, [FromBody] SetWristbandDto dto)
 		{
-			using (var session = Store.OpenSession("AttendeeData"))
+			var collection = db.GetCollection<Attendee>("attendees");
+			var attendee = collection.Find(x => x.Id == id)
+				.SingleOrDefault();
+
+			if (attendee == null)
+				return NotFound();
+
+			attendee.Wristband = dto.Wristband;
+
+			if (dto.RemovedWristbands != null)
 			{
-				var attendee = session.Load<Attendee>(id);
-				if (string.IsNullOrWhiteSpace(dto.Wristband) && !string.IsNullOrWhiteSpace(attendee.Wristband))
-				{
-					var removed = new List<string>();
-					if (attendee.RemovedWristbands != null)
-					{
-						removed.AddRange(attendee.RemovedWristbands);
-					}
-					removed.Add(attendee.Wristband);
-					attendee.RemovedWristbands = removed.ToArray();
-				}
-				attendee.Wristband = dto.Wristband;
-				if (attendee.ArrivalDate == DateTime.MinValue)
-				{
-					attendee.ArrivalDate = DateTime.Parse(dto.Date);
-				}
-				session.Store(attendee);
-				session.SaveChanges();
+				var removed = new List<string>();
+				removed.AddRange(dto.RemovedWristbands);
+				attendee.RemovedWristbands = removed
+					.Except(new[] { dto.Wristband })
+					.Distinct()
+					.ToArray();
 			}
+
+			if (attendee.ArrivalDate == DateTime.MinValue)
+			{
+				attendee.ArrivalDate = DateTime.Parse(dto.Date);
+			}
+
+			collection.Update(attendee);
 
 			return Ok();
 		}

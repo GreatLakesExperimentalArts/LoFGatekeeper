@@ -1,0 +1,40 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "axios": "^0.16.2",
+    "bootstrap": "4.0.0-alpha.6",
+    "jquery": "^3.2.1",
+    "material-design-icons": "^3.0.1",
+    "material-ui": "^0.18.5",
+    "moment": "^2.18.1",
+    "node-sass-chokidar": "^0.0.3",
+    "npm-run-all": "^4.0.2",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "react-input-mask": "^1.0.1",
+    "react-material-icons": "^1.0.2",
+    "react-redux": "^5.0.5",
+    "react-toolbox": "^2.0.0-beta.12",
+    "react-transition-group": "^1.2.0",
+    "react-visibility-sensor": "^3.10.0",
+    "reactstrap": "^4.7.0",
+    "redux": "^3.7.1",
+    "redux-promise": "^0.5.3",
+    "redux-thunk": "^2.2.0"
+  },
+  "devDependencies": {
+    "react-scripts": "1.0.7",
+    "react-toolbox-themr": "^1.0.2"
+  },
+  "scripts": {
+    "build-css": "node-sass-chokidar src/ -o src/",
+    "watch-css": "npm run build-css && node-sass-chokidar src/ -o src/ --watch --recursive",
+    "start-js": "react-scripts start",
+    "start": "npm-run-all -p watch-css start-js",
+    "build": "npm run build-css && react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
