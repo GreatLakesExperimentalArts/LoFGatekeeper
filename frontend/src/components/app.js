@@ -11,7 +11,7 @@ export default class App extends Component {
           <Container className="wrapper" fluid={true}>
             <Navbar color="inverse" inverse toggleable>
               <NavbarToggler right onClick={this.toggle} />
-              <NavbarBrand href="/">LoF Gate Entry System</NavbarBrand>
+              <NavbarBrand href="/"><img src="/bg-logo.png" height="52px" alt="" />&nbsp;LoF Gate Entry System</NavbarBrand>
               <Collapse isOpen={true} navbar>
                 <Nav className="ml-auto" navbar>
                   <NavItem>

@@ -3,23 +3,23 @@ import { bindActionCreators } from "redux";
 import { connect } from 'react-redux';
 import { Container, Row, Col, Pagination, PaginationItem, PaginationLink } from 'reactstrap';
 import { searchFilter } from "../actions/index";
-import $ from 'jquery';
+import Tether from 'tether';
 
 class AttendeePager extends Component {
 	componentDidMount() {
-		var footerResize = function() {
-			$('.footer')
-				.css('position', $("body").height() + $(".footer").innerHeight() > $(window).height() ? "fixed" : "relative");
-		};
-		$(window)
-			.resize(footerResize)
-			.scroll(footerResize)
-			.ready(footerResize);
+		var tether = new Tether({
+			element: '.footer',
+			target: document.body,
+			attachment: 'bottom center',
+			targetAttachment: 'bottom center',
+			targetModifier: 'visible'
+		});
+		tether.position();
 	}
 
 	render() {
 		return (
-			<Container className="footer" fluid={true} style={{ display: (typeof (this.props.pager || {}).count) === 'undefined' ? 'none' : 'inherit' }}>
+			<Container className="footer" fluid={true} style={{ display: 'none' }}>
 				<Row>
 					<Col>&nbsp;</Col>
 					<Col xs="auto">

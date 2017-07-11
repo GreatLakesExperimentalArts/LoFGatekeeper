@@ -22,7 +22,8 @@
     "reactstrap": "^4.7.0",
     "redux": "^3.7.1",
     "redux-promise": "^0.5.3",
-    "redux-thunk": "^2.2.0"
+    "redux-thunk": "^2.2.0",
+    "tether": "^1.4.0"
   },
   "devDependencies": {
     "npm-run-all": "^4.0.2",
