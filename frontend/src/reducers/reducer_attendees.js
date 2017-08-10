@@ -72,7 +72,7 @@ export default function(state = { items: [] }, action) {
 
 				let next = max(map(candidates, flow(
 					property('wristband'),
-					(wristband) => isAdult(age) ? wristband : (wristband || 'M000').substring(1, 3),
+					(wristband) => isAdult(age) ? wristband : (wristband || 'M000').substring(1, 4),
 					parseInt
 				))) + 1;
 

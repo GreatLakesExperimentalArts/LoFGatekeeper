@@ -12,9 +12,46 @@ class AttendeeTable extends Component {
 		this.props.fetchAttendees();
 	}
 
+	getAdultCount()
+	{
+		let attendees = this.props.attendees.items;
+		const isAdult = (a) => a >= 21;
+
+		let adults = _.filter(attendees, (attendee) => isAdult(attendee.age));
+
+		let last_adult = _.max(_.map(adults, _.flow(
+			_.property('wristband'),
+			(wristband) => wristband || '0000',
+			parseInt
+		)));
+
+		return last_adult - _.size(_.without(_.flatMap(adults, (attendee) => attendee.removedWristbands), null));
+	}
+
+	getChildCount()
+	{
+		let attendees = this.props.attendees.items;
+		let children = _.filter(attendees, (attendee) => attendee.age < 21);
+
+		console.log(_.map(children, _.flow(
+			_.property('wristband'),
+			(wristband) => ((wristband || '0000').startsWith('M') === false ? '0000' : (wristband || '0000')).substring(1, 4)
+		)));
+
+		let last_child = _.max(_.map(children, _.flow(
+			_.property('wristband'),
+			(wristband) => ((wristband || '0000').startsWith('M') === false ? '0000' : (wristband || '0000')).substring(1, 4),
+			parseInt
+		)));
+
+		return last_child - _.size(_.without(_.flatMap(children, (attendee) => attendee.removedWristbands), null));
+	}
+	
+	// <div>Counts: Adults {this.getAdultCount()}, Children {this.getChildCount()}</div>
+
 	render() {
 		return (
-			<Table size="sm" striped> 
+			<Table size="sm" striped>
 				<thead>
 					<tr>
 						<th>Entry</th>
