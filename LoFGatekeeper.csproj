@@ -7,11 +7,9 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);frontend\**\*.*</DefaultItemExcludes>
     <Version>1.0.0</Version>
     <InformationalVersion>1.0.0</InformationalVersion>
-    <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
-    <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
-    <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="APIology.ServiceProvider.AspNetCore" Version="1.0.3" />
     <PackageReference Include="LiteDB" Version="3.1.1" />
     <PackageReference Include="NameParserSharp" Version="1.2.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="1.1.2" />
@@ -24,9 +22,6 @@
     <PackageReference Include="Topshelf" Version="4.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\APIology\APIology.Core\APIology.Core.csproj" />
-    <ProjectReference Include="..\APIology\APIology.ServiceProvider.AspNetCore\APIology.ServiceProvider.AspNetCore.csproj" />
-    <ProjectReference Include="..\APIology\APIology.ServiceProvider\APIology.ServiceProvider.csproj" />
     <ProjectReference Include="..\LoFGatekeeper.Interfaces\LoFGatekeeper.Interfaces.csproj" />
   </ItemGroup>
   <ItemGroup>

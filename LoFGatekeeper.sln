@@ -5,17 +5,11 @@ VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper", "LoFGatekeeper.csproj", "{D78F4AA7-2E42-4DFE-B215-195D69D1419E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APIology.Core", "..\APIology\APIology.Core\APIology.Core.csproj", "{96F71310-E440-433A-8398-ACCC4EE35031}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.BRTImport", "..\LoFGatekeeper.BRTImport\LoFGatekeeper.BRTImport.csproj", "{1B41BE75-CEC2-4275-BAED-3F741894D43C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APIology.ServiceProvider", "..\APIology\APIology.ServiceProvider\APIology.ServiceProvider.csproj", "{67A5305C-095E-415B-B7C0-86BEA3518E02}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.Interfaces", "..\LoFGatekeeper.Interfaces\LoFGatekeeper.Interfaces.csproj", "{F039DC41-7B79-445B-A0BD-093B0B0274EA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APIology.ServiceProvider.AspNetCore", "..\APIology\APIology.ServiceProvider.AspNetCore\APIology.ServiceProvider.AspNetCore.csproj", "{255686E0-E29A-4029-9386-5740FC6C0856}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.BRTImport", "..\LoFGatekeeper.BRTImport\LoFGatekeeper.BRTImport.csproj", "{1B41BE75-CEC2-4275-BAED-3F741894D43C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Interfaces", "..\LoFGatekeeper.Interfaces\LoFGatekeeper.Interfaces.csproj", "{F039DC41-7B79-445B-A0BD-093B0B0274EA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.CSVImport.Ticketing", "..\LoFGatekeeper.CSVImport.Ticketing\LoFGatekeeper.CSVImport.Ticketing.csproj", "{746CE17E-E20C-467C-B1CD-120A9D673213}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.CSVImport.Ticketing", "..\LoFGatekeeper.CSVImport.Ticketing\LoFGatekeeper.CSVImport.Ticketing.csproj", "{746CE17E-E20C-467C-B1CD-120A9D673213}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.CSVImport.Departments", "..\LoFGatekeeper.CSVImport.Departments\LoFGatekeeper.CSVImport.Departments.csproj", "{FEABDE75-3091-4F48-B2E9-18B2CE8321A1}"
 EndProject
@@ -29,18 +23,6 @@ Global
 		{D78F4AA7-2E42-4DFE-B215-195D69D1419E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D78F4AA7-2E42-4DFE-B215-195D69D1419E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D78F4AA7-2E42-4DFE-B215-195D69D1419E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{96F71310-E440-433A-8398-ACCC4EE35031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{96F71310-E440-433A-8398-ACCC4EE35031}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{96F71310-E440-433A-8398-ACCC4EE35031}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{96F71310-E440-433A-8398-ACCC4EE35031}.Release|Any CPU.Build.0 = Release|Any CPU
-		{67A5305C-095E-415B-B7C0-86BEA3518E02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{67A5305C-095E-415B-B7C0-86BEA3518E02}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{67A5305C-095E-415B-B7C0-86BEA3518E02}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{67A5305C-095E-415B-B7C0-86BEA3518E02}.Release|Any CPU.Build.0 = Release|Any CPU
-		{255686E0-E29A-4029-9386-5740FC6C0856}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{255686E0-E29A-4029-9386-5740FC6C0856}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{255686E0-E29A-4029-9386-5740FC6C0856}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{255686E0-E29A-4029-9386-5740FC6C0856}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1B41BE75-CEC2-4275-BAED-3F741894D43C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1B41BE75-CEC2-4275-BAED-3F741894D43C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1B41BE75-CEC2-4275-BAED-3F741894D43C}.Release|Any CPU.Build.0 = Release|Any CPU
