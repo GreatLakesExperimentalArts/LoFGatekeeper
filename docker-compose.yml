@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  lofgatekeeper:
+    image: lofgatekeeper
+    build:
+      context: .
+      dockerfile: Dockerfile

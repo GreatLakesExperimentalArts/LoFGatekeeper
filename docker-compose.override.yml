@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  lofgatekeeper:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "54000:80"

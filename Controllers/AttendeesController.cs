@@ -1,4 +1,4 @@
-﻿namespace LoFGatekeeper.Controllers
+namespace LoFGatekeeper.Controllers
 {
 	using LiteDB;
 	using Microsoft.AspNetCore.Mvc;
@@ -33,48 +33,9 @@
 				.FindAll()
 				.OrderBy(a => a.Wristband, new EmptyStringsLast())
 				.ThenBy(a => a.Department, new EmptyStringsLast())
-				.ThenBy(a => a.Name.Last)
-				.ThenBy(a => a.Name.First)
+				.ThenBy(a => a.Name.LastName)
+				.ThenBy(a => a.Name.FirstName)
 				.ToList();
-		}
-
-		public class SetWristbandDto
-		{
-			public string Wristband { get; set; }
-			public string[] RemovedWristbands { get; set; }
-			public string Date { get; set; }
-		}
-
-		[HttpPost("{id}/setWristband")]
-		public IActionResult SetWristband(string id, [FromBody] SetWristbandDto dto)
-		{
-			var collection = db.GetCollection<Attendee>("attendees");
-			var attendee = collection.Find(x => x.Id == id)
-				.SingleOrDefault();
-
-			if (attendee == null)
-				return NotFound();
-
-			attendee.Wristband = dto.Wristband;
-
-			if (dto.RemovedWristbands != null)
-			{
-				var removed = new List<string>();
-				removed.AddRange(dto.RemovedWristbands);
-				attendee.RemovedWristbands = removed
-					.Except(new[] { dto.Wristband })
-					.Distinct()
-					.ToArray();
-			}
-
-			/*if (attendee.ArrivalDate == DateTime.MinValue)
-			{
-				attendee.ArrivalDate = DateTime.Parse(dto.Date);
-			}*/
-
-			collection.Update(attendee);
-
-			return Ok();
 		}
 	}
 }

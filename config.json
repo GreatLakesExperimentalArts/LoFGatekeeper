@@ -1,6 +1,3 @@
-﻿{
-  "Bindings": [
-    { "UrlAcl": "http://+:54000" }
-  ],
+{
   "DefaultNoEntryBefore": ""
 }

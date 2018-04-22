@@ -1,0 +1,48 @@
+@placeholderOpacity: 0.3;
+@font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+div[data-placeholder] {
+    position: relative;
+
+    &::after {
+        font-family: @font-family-monospace;
+        position: absolute;
+        left: 8px;
+        top: 2px;
+        content: attr(data-placeholder);
+        pointer-events: none;
+        opacity: @placeholderOpacity;
+    }
+}
+
+input.overlayed {
+    font-family: @font-family-monospace;
+
+    .outline(@class, @color) {
+        &.@{class} {
+            outline-color: @color;
+            -webkit-border-start: 1px solid @color;
+            -webkit-border-end: 1px solid @color;
+            -webkit-border-before: 1px solid @color;
+            -webkit-border-after: 1px solid @color;
+        }
+	}
+
+	&[disabled],
+	&[disabled]:hover {
+		.outline(overlayed, rgba(255,255,255,0));
+		background-color: rgba(255,255,255,0);
+	}
+
+    .outline(success, green);
+    .outline(warning, orange);
+    .outline(failure, red);
+
+    &::placeholder,
+    &::-webkit-input-placeholder,
+    &:-moz-placeholder,
+    &::-moz-placeholder,
+    &:-ms-input-placeholder {
+        opacity: @placeholderOpacity;
+    }
+}

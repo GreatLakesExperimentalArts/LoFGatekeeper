@@ -1,25 +1,46 @@
-﻿namespace LoFGatekeeper
+namespace LoFGatekeeper
 {
 	using APIology.ServiceProvider;
 	using Autofac;
+	using Hubs;
 	using LiteDB;
 	using Microsoft.AspNetCore.Builder;
 	using Microsoft.AspNetCore.Hosting;
+	using Microsoft.AspNetCore.SignalR;
+	using Microsoft.AspNetCore.SpaServices.Webpack;
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
-	using NameParser;
 	using Serilog;
-	using System;
 	using System.IO;
 	using System.Reflection;
 	using Topshelf;
 
 	public class Service : AspNetCoreServiceProvider<Service, Configuration>
 	{
-		public static void Main() => Run();
+		public static void Main() {
+			Run();
+		}
 
 		public override bool Start(HostControl hostControl)
 		{
+			var sep = Path.DirectorySeparatorChar;
+			DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+			try
+			{
+				while (new FileInfo($@"{info.FullName}{sep}ClientApp{sep}boot-client.tsx").Exists == false) {
+					info = info.Parent;
+				};
+			}
+			catch
+			{
+				info = new DirectoryInfo(Directory.GetCurrentDirectory());
+			}
+
+			Logger.Information($@"Application current directory set to {info.FullName}");
+
+			Directory.SetCurrentDirectory(info.FullName);
+
 			if (!base.Start(hostControl))
 				return false;
 
@@ -36,9 +57,12 @@
 
 		public override IConfigurationBuilder BuildConfiguration(IConfigurationBuilder configuration)
 		{
+			string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
 			return configuration
-				.AddJsonFile("config.json", false, true)
-				.AddJsonFile("config.overrides.json", true, true);
+				.AddEnvironmentVariables()
+				.AddJsonFile($@"{exeDir}/config.json", false, true)
+				.AddJsonFile($@"{exeDir}/config.overrides.json", true, true);
 		}
 
 		public override void BuildLogger(LoggerConfiguration logging)
@@ -48,37 +72,16 @@
 				.Enrich.FromLogContext()
 				.WriteTo.LiterateConsole()
 				.WriteTo.Async(a => a
-					.Seq("http://localhost:5341/"))
-				.WriteTo.Async(a => a
 					.RollingFile(
-						pathFormat: "logs/log-{Date}.txt",
-						buffered: true,
-						flushToDiskInterval: TimeSpan.FromMilliseconds(500)
+						pathFormat: "data/logs/log-{Date}.txt",
+						buffered: true
 					));
-		}
-
-		public class HumanNameProxy
-		{
-			public string FullName { get; set; }
 		}
 
 		public override void BuildDependencyContainer(ContainerBuilder builder)
 		{
 			string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			Directory.SetCurrentDirectory(exeDir);
-
-			BsonMapper.Global.RegisterType(
-				name => name.FullName,
-				bson => {
-					if (bson.IsString)
-						return new HumanName(bson.AsString);
-
-					var proxy = BsonMapper.Global.ToObject<HumanNameProxy>(bson.AsDocument);
-					return new HumanName(proxy.FullName);
-				}
-			);
-
-			builder.Register(context => new LiteDatabase(@"LoFData.db"))
+			builder.Register(context => new LiteDatabase("data/LoFData.db"))
 				.OwnedByLifetimeScope()
 				.SingleInstance();
 
@@ -89,65 +92,68 @@
 		{
 			services.AddCors();
 			services.AddMvc()
-				.AddApplicationPart(typeof(Service).GetTypeInfo().Assembly);
+				.AddApplicationPart(typeof(Service).GetTypeInfo().Assembly)
+				.AddControllersAsServices();
+			services.AddSignalR();
 		}
 
 		public override void BuildAspNetCoreDependencySubcontainer(ContainerBuilder builder)
 		{
+			builder.RegisterInstance(Logger)
+				.As<ILogger>()
+				.ExternallyOwned()
+				.SingleInstance();
+
 			builder.RegisterInstance(LazyContainer.Value.Resolve<LiteDatabase>())
 				.ExternallyOwned()
 				.SingleInstance();
+
+			builder.RegisterType<AttendeeHubContext>()
+				.As<IAttendeeHubContext>()
+				.PropertiesAutowired()
+				.SingleInstance();
+
+			builder.RegisterAssemblyTypes(typeof(Service).GetTypeInfo().Assembly)
+				.Where(t => typeof(Hub).IsAssignableFrom(t))
+				.ExternallyOwned();
 		}
 
 		public override void BuildAspNetCoreApp(IApplicationBuilder app, IHostingEnvironment env)
 		{
-			app.UseCors(builder => 
+			app.UseCors(builder =>
 				builder.AllowAnyOrigin()
 					.AllowAnyHeader()
 					.AllowAnyMethod());
-			
+
 			if (env.IsDevelopment())
 			{
+				Logger.Information("Using Webpack Middleware");
+
 				app.UseDeveloperExceptionPage();
-				app.UseBrowserLink();
-			}
-			else
-			{
+
+				app.UseWebpackDevMiddleware(new WebpackDevMiddlewareOptions {
+					HotModuleReplacement = true,
+					ReactHotModuleReplacement = true
+				});
+			} else {
 				app.UseExceptionHandler("/Error");
 			}
 
-			app.UseMvc();
-			app.UseFileServer();
+			app.UseStaticFiles();
 
-			/*app.UseWebSockets(new WebSocketOptions {
-				ReceiveBufferSize = 1024 * 4
+			app.UseSignalR(routes => {
+				routes.MapHub<AttendeeHub>("/hubs/attendee");
 			});
 
-			app.Use(async (context, next) => {
-				if (context.Request.Path == "/ws")
-				{
-					var ws = await context.WebSockets.AcceptWebSocketAsync();
+			app.UseMvc(routes => {
+				routes.MapRoute(
+					name: "default",
+					template: "{controller=Home}/{action=Index}/{id?}");
 
-					Func<HttpContext, WebSocket, Task> task = async (ctxInner, webSocket) => {
-						var buffer = new byte[1024 * 4];
-						WebSocketReceiveResult result = null;
-
-						while (result?.CloseStatus.HasValue != true)
-						{
-							result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-							if (result.EndOfMessage) {
-								await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
-							}
-						}
-
-						await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-					};
-
-					await task(context, ws);
-				} else {
-					await next();
-				}
-			});*/
+				routes.MapSpaFallbackRoute(
+					name: "spa-fallback",
+					defaults: new { controller = "Home", action = "Index" });
+			});
 		}
 	}
 }
