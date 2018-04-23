@@ -66,6 +66,6 @@
   },
   "scripts": {
     "build": "sh ./scripts/build.sh",
-    "test": "node scripts/test.js --env=jsdom"
+    "start": "sh ./scripts/run.sh"
   }
 }
