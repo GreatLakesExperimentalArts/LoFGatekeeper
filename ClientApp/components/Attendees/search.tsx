@@ -19,28 +19,21 @@ type AttendeesProps =
 
 interface SearchBarState {
   searchValue: string;
+  categoryFilter: string;
 }
 
 class AttendeeSearchBar extends Component<AttendeesProps, SearchBarState> {
-  private selectBefore = (
-      <Select defaultValue="Option1" style={{ width: 150 }}>
-        <Option value="Option1">Everyone</Option>
-        <Option value="Option2">Early Entry Only</Option>
-        <Option value="Option3">Confirmed</Option>
-        <Option value="Option4">Unconfirmed</Option>
-      </Select>
-    );
-
   private debouncedSearch = debounce(
       () => {
-        this.props.updateSearch(this.state.searchValue);
+        this.props.updateSearch(this.state.searchValue, this.state.categoryFilter);
       },
       500
     );
 
   componentWillMount() {
     this.onInputChange = this.onInputChange.bind(this);
-    this.setState({ searchValue: '' });
+    this.onSelectChange = this.onSelectChange.bind(this);
+    this.setState({ searchValue: '', categoryFilter: 'Everyone' });
   }
 
   componentWillReceiveProps(nextProps: AttendeesProps) {
@@ -48,13 +41,26 @@ class AttendeeSearchBar extends Component<AttendeesProps, SearchBarState> {
   }
 
   public render() {
+    let selectBefore = (
+      <Select style={{ width: 150 }} value={this.state.categoryFilter || ''} onChange={this.onSelectChange}>
+        <Option value="Everyone">Everyone</Option>
+        <Option value="EarlyEntry">Early Entry Only</Option>
+        <Option value="Confirmed">Confirmed</Option>
+        <Option value="Unconfirmed">Unconfirmed</Option>
+      </Select>
+    );
+
     return (
       <Search
-        addonBefore={this.selectBefore}
+        addonBefore={selectBefore}
         onKeyUp={this.onInputChange}
         style={{padding: '25px 0'}}
       />
     );
+  }
+
+  private onSelectChange(categoryFilter: string) {
+    this.setState({ categoryFilter }, this.debouncedSearch);
   }
 
   private onInputChange(event: React.SyntheticEvent<HTMLInputElement>) {

@@ -162,6 +162,7 @@ interface GetNextUnusedWristbandAction {
 interface UpdateSearchAction {
   type: 'UPDATE_SEARCH';
   search: string;
+  categoryFilter: string;
 }
 
 interface SetTableRefAction {
@@ -278,8 +279,8 @@ export const actionCreators = {
 
     dispatch({ type: 'GET_NEXT_UNUSED_WRISTBAND', callback, index });
   },
-  updateSearch: (search: string): AppThunkAction<KnownAction> => (dispatch, getState) => {
-    dispatch({ type: 'UPDATE_SEARCH', search });
+  updateSearch: (search: string, categoryFilter: string): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    dispatch({ type: 'UPDATE_SEARCH', search, categoryFilter });
   },
   setTableRef: (table: StatefulTable<{}>):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
@@ -385,7 +386,7 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
           };
         }
 
-        if (action.search.length === 0) {
+        if (action.search.length === 0 && (action.categoryFilter || '') === '') {
           return {
             ...state,
             searchFilter: action.search,
@@ -394,8 +395,27 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
         }
 
         var exp = new RegExp(action.search, 'gi');
-
         var result = filter(attendees, function (o: Attendee) {
+          switch (action.categoryFilter) {
+            case 'EarlyEntry':
+              if (!o.permittedEntryDate || !o.permittedEntryDate.isValid()) {
+                return false;
+              }
+              break;
+            case 'Confirmed':
+              if (o.confirmed === false) {
+                return false;
+              }
+              break;
+            case 'Unconfirmed':
+              if (o.confirmed === true) {
+                return false;
+              }
+              break;
+            default:
+              break;
+          }
+
           return some(['name', 'wristband', 'removedWristbands', 'id'], function (s: keyof Attendee) {
             switch (s) {
               case 'name':
