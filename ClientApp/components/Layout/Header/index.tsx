@@ -11,12 +11,11 @@ export default class Header extends React.Component<{}, {}> {
         <Menu
           theme="dark"
           mode="horizontal"
-          defaultSelectedKeys={['1']}
+          defaultSelectedKeys={['Wristbands']}
           style={{ lineHeight: '64px' }}
         >
-          <Menu.Item key="1">Wristband Entry</Menu.Item>
-          <Menu.Item key="2">Volunteers</Menu.Item>
-          <Menu.Item key="3">nav 3</Menu.Item>
+          <Menu.Item key="Wristbands">Wristband Entry</Menu.Item>
+          <Menu.Item key="Volunteers">Volunteers</Menu.Item>
         </Menu>
       </AntHeader>
     );

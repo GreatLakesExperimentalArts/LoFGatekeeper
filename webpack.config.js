@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
+const CssRewritePlugin = require('css-rewrite-webpack-plugin');
 const merge = require('webpack-merge');
 const paths = require('./paths');
 
@@ -95,6 +96,12 @@ module.exports = (env) => {
         output: { path: path.join(__dirname, clientBundleOutputDir) },
         plugins: [
           new ExtractTextPlugin('site.css'),
+          new CssRewritePlugin({
+              fileReg: new RegExp('site.css'),
+              processor: function (source) {
+                  return source.replace(/https:\/\/at\.alicdn\.com\/t\/font_zck90zmlh7hf47vi/g, '/fonts/anticon')
+              }
+          }),
           new webpack.DllReferencePlugin({
               context: __dirname,
               manifest: require('./wwwroot/dist/vendor-manifest.json')
