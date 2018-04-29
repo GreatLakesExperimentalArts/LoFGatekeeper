@@ -8,9 +8,14 @@
     "experimentalDecorators": true,
     "sourceMap": true,
     "skipDefaultLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
     "lib": ["es6", "dom"],
-    "types": ["webpack-env"]
+    "types": ["webpack-env"],
+    "paths": {
+      "store": ["ClientApp/store"],
+      "store/*": ["ClientApp/store/*"]
+    }
   },
   "exclude": [
     "bin"

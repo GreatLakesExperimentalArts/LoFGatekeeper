@@ -1,4 +1,4 @@
-import * as Attendees from './Attendees';
+import * as Attendees from './attendees';
 
 // The top-level state object
 export interface ApplicationState {

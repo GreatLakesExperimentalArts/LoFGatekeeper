@@ -1,0 +1,21 @@
+.outline(@class, @color) {
+	&.@{class} {
+		outline-color: @color;
+		-webkit-border-start: 1px solid @color;
+		-webkit-border-end: 1px solid @color;
+		-webkit-border-before: 1px solid @color;
+		-webkit-border-after: 1px solid @color;
+	}
+}
+
+div.ant-form-explain {
+	padding-bottom: 10px;
+}
+
+div.ant-form-item-control input.overlayed {
+	&[disabled],
+	&[disabled]:hover {
+		.outline(overlayed, #d9d9d9);
+		background-color: rgba(0, 0, 0, 0.075);
+	}
+}

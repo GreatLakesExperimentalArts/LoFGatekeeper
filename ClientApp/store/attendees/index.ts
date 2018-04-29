@@ -1,209 +1,36 @@
 import { fetch, addTask } from 'domain-task';
-import { Component, PureComponent } from 'react';
 import { Action, Reducer, ActionCreator, Store } from 'redux';
-import { AppThunkAction, ApplicationState } from './';
+import { AppThunkAction, ApplicationState } from '../';
 import * as SignalR from '@aspnet/signalr';
 import { Moment } from 'moment';
 import moment from 'moment';
 import {
-  curry,
-  each,
-  filter,
-  findIndex,
-  flattenDeep as flatten,
-  flow,
-  map,
-  max,
-  padStart,
-  property,
-  over,
-  remove,
-  some,
-  without,
-  // types
   ArrayIterator,
   ListIterator,
   NotVoid,
   PartialDeep,
   StringIterator
 } from 'lodash';
+import * as _ from 'lodash';
 
 let connection: SignalR.HubConnection;
 
-const curryMap = curry(
-  (
-    iteratee: ArrayIterator<{}, {}>,
-    collection: {}[] | null | undefined
-  ) =>
-    map(collection, iteratee)
-);
+import {
+  Attendee as AttendeeIntl,
+  AttendeesState as AttendeesStateIntl,
+  AttendeesValueState
+} from './dto';
+import { KnownAction } from './actions';
+import { StatefulTable, StatefulRow } from './table';
 
-const curriedPull = curry(
-  (
-    predicate: string | [string, any] | ListIterator<{}, NotVoid> | PartialDeep<{}>,
-    array: ArrayLike<{}>
-  ) => remove(array, predicate)
-);
-
-const curriedFilter = curry(
-  (
-    predicate: ListIterator<any, NotVoid>,
-    collection: ArrayLike<any>
-  ) => filter(collection, predicate)
-);
-
-export interface AttendeesState {
-  searchFilter?: string;
-  attendees: Attendee[];
-  result?: Attendee[];
-  table: StatefulTable<{}> | null;
-}
-
-export interface Attendee {
-  id: string;
-  name: AttendeeName;
-  dob: Moment;
-  age: number;
-  wristband: string | null;
-  removedWristbands: string[] | null;
-  permittedEntryDate: Moment | null;
-  arrivalDate: Moment | null;
-  confirmed: boolean;
-  index: number;
-  row: StatefulRow;
-}
-
-export interface AttendeeName {
-  firstName: string;
-  lastName: string;
-  nickname: string;
-}
-
-export abstract class StatefulComponent<
-    T extends StatefulComponentProps,
-    U extends StatefulComponentState
-  > extends Component<T, U> {
-}
-
-export abstract class StatefulTable<T> extends Component<StatefulTableProps, T> {
-  public abstract setInputState(
-    index: number,
-    key: keyof StatefulRow,
-    state: Pick<StatefulComponentState, any>,
-    callback?: () => void
-  ): AppThunkAction<KnownAction>;
-}
-
-export type StatefulTableProps = StatefulTableState & typeof actionCreators;
-
-export interface StatefulTableState extends AttendeesState {
-  rowStates: StatefulRow[];
-}
-
-export interface StatefulComponentState {
-  value: string;
-  disabled: boolean;
-  static: boolean;
-  valid: boolean;
-  input?: Component | null;
-}
-
-export class StatefulComponentProps implements StatefulComponentState {
-  index: number = -1;
-  attendee?: Attendee;
-  table?: StatefulTable<any>;
-  onValidated?: <T>(input: T) => void;
-
-  value: string = '';
-  static: boolean = true;
-  disabled: boolean = false;
-  valid: boolean = false;
-}
-
-export class StatefulRow {
-  dob: StatefulComponentState = { value: '', valid: false, disabled: false, static: false, input: null };
-  wristband: StatefulComponentState = { value: '', valid: false, disabled: true, static: true, input: null };
-  buttons: { mode: 'commit' | 'delete' | 'none' } = { mode: 'none' };
-}
-
-interface RequestAttendeesAction {
-  type: 'REQUEST_ATTENDEES';
-}
-
-interface ReceiveAttendeesAction {
-  type: 'RECEIVE_ATTENDEES';
-  attendees: Attendee[];
-}
-
-interface RequestAttendeeUpdateAction {
-  type: 'REQUEST_ATTENDEE_UPDATE';
-  attendee: Pick<Attendee, any>;
-}
-
-interface ReceiveAttendeeUpdateAction {
-  type: 'RECEIVE_ATTENDEE_UPDATE';
-  index: number;
-  attendee: Pick<Attendee, any>;
-}
-
-interface CheckIfWristbandUsedAction {
-  type: 'CHECK_IF_WRISTBAND_USED';
-  wristband: string;
-  index: number | null;
-  callback: (used: boolean) => void;
-}
-
-interface GetNextUnusedWristbandAction {
-  type: 'GET_NEXT_UNUSED_WRISTBAND';
-  index: number;
-  callback: (next: string) => void;
-}
-
-interface UpdateSearchAction {
-  type: 'UPDATE_SEARCH';
-  search: string;
-  categoryFilter: string;
-}
-
-interface SetTableRefAction {
-  type: 'SET_TABLE_REF';
-  table: StatefulTable<{}>;
-}
-interface SetRowStateAction {
-  type: 'SET_ROW_STATE';
-  index: number;
-  state: Pick<StatefulRow, any>;
-  callback?: () => void;
-}
-
-export type KnownAction =
-  RequestAttendeesAction |
-  ReceiveAttendeesAction |
-  RequestAttendeeUpdateAction |
-  ReceiveAttendeeUpdateAction |
-  CheckIfWristbandUsedAction |
-  GetNextUnusedWristbandAction |
-  UpdateSearchAction |
-  SetTableRefAction |
-  SetRowStateAction;
-
-export type CheckIfWristbandUsed = (
-  wristband: string,
-  index: number,
-  callback: (used: boolean) => void
-) => void;
-
-export type GetNextUnusedWristband = (
-  index: number,
-  callback: (next: string) => void
-) => void;
+export type Attendee = AttendeeIntl;
 
 export const bindConnectionToStore = (store: Store<ApplicationState>, callback: Function) => {
   connection = new SignalR.HubConnection('/hubs/attendee');
 
   connection.on('Update', data => {
     let state = store.getState().attendees;
-    let index = findIndex(state.attendees, (attendee: Attendee) => attendee.id === data.id);
+    let index = _.findIndex(state.attendees, (attendee: Attendee) => attendee.id === data.id);
 
     store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, index });
 
@@ -217,7 +44,7 @@ export const bindConnectionToStore = (store: Store<ApplicationState>, callback: 
     }
   });
 
-  connection.start(); // .then(callback());
+  connection.start();
 };
 
 export const actionCreators = {
@@ -263,21 +90,21 @@ export const actionCreators = {
   },
   checkIfWristbandUsed: (
       wristband: string | null,
-      index: number | null,
+      reference: number | Moment | null,
       callback: (used: boolean) => void
     ):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
 
     wristband = wristband || '';
-    dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, index, callback });
+    dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, reference, callback });
   },
   getNextUnusedWristband: (
-      index: number,
+      reference: number | Moment,
       callback: (next: string) => void
     ):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
 
-    dispatch({ type: 'GET_NEXT_UNUSED_WRISTBAND', callback, index });
+    dispatch({ type: 'GET_NEXT_UNUSED_WRISTBAND', callback, reference });
   },
   updateSearch: (search: string, categoryFilter: string): AppThunkAction<KnownAction> => (dispatch, getState) => {
     dispatch({ type: 'UPDATE_SEARCH', search, categoryFilter });
@@ -294,15 +121,14 @@ export const actionCreators = {
   }
 };
 
-const unloadedState: StatefulTableState = {
+const unloadedState: AttendeesValueState = {
   attendees: [],
   result: [],
   table: null,
-  searchFilter: '',
-  rowStates: []
+  searchFilter: ''
 };
 
-const addAttendeeProps = (state: StatefulTableState, attendee: Attendee, index: number) => {
+const addAttendeeProps = (state: AttendeesValueState, attendee: Attendee, index: number) => {
   attendee.dob = moment(attendee.dob).startOf('day');
 
   if (attendee.dob.year() === 1) {
@@ -357,7 +183,13 @@ const addAttendeeProps = (state: StatefulTableState, attendee: Attendee, index: 
   return attendee;
 };
 
-export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, incomingAction: Action) => {
+const WristbandSegments = [
+  { match: (n: Pick<Attendee, any>) => n.age >= 21,               start:    1, endAt: 2400 },
+  { match: (n: Pick<Attendee, any>) => n.age < 21 && n.age >= 13, start: 2401, endAt: 2550 },
+  { match: (n: Pick<Attendee, any>) => n.age < 13 && n.age > 0,   start: 2551, endAt: 2800 }
+];
+
+export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState, incomingAction: Action) => {
   const action = incomingAction as KnownAction;
   switch (action.type) {
     case 'REQUEST_ATTENDEES':
@@ -367,7 +199,7 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
       };
 
     case 'RECEIVE_ATTENDEES':
-      each(action.attendees, (item, idx: number) => addAttendeeProps(state, item, idx));
+      _.each(action.attendees, (item, idx: number) => addAttendeeProps(state, item, idx));
 
       return {
         ...state,
@@ -395,7 +227,7 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
         }
 
         var exp = new RegExp(action.search, 'gi');
-        var result = filter(attendees, function (o: Attendee) {
+        var result = _.filter(attendees, function (o: Attendee) {
           switch (action.categoryFilter) {
             case 'EarlyEntry':
               if (!o.permittedEntryDate || !o.permittedEntryDate.isValid()) {
@@ -416,12 +248,12 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
               break;
           }
 
-          return some(['name', 'wristband', 'removedWristbands', 'id'], function (s: keyof Attendee) {
+          return _.some(['name', 'wristband', 'removedWristbands', 'id'], function (s: keyof Attendee) {
             switch (s) {
               case 'name':
                 return exp.test(`${o.name.firstName} ${o.name.lastName}`);
               case 'removedWristbands':
-                return findIndex(o.removedWristbands, (i: string & null) => exp.test(i || '')) > -1;
+                return _.findIndex(o.removedWristbands, (i: string & null) => exp.test(i || '')) > -1;
               default:
                 let key: (keyof Attendee) = s;
                 return exp.test((o[s] || '').toString());
@@ -464,50 +296,63 @@ export const reducer: Reducer<StatefulTableState> = (state: StatefulTableState, 
     case 'CHECK_IF_WRISTBAND_USED':
       action.callback((() => {
         let id: string;
+        let outOfBounds = false;
 
-        if (action.index) {
-          let attendee = state.attendees[action.index];
-          id = attendee.id;
+        if (action.reference) {
+          let attendee: Pick<Attendee, any>;
+          if (typeof action.reference === 'number' && action.reference >= 0) {
+            attendee = state.attendees[action.reference];
+            id = attendee.id;
+          }
+          if (action.reference instanceof moment) {
+            attendee = { age: moment().startOf('day').diff(action.reference, 'years', true) };
+          }
+
+          let segment = WristbandSegments[_.findIndex(WristbandSegments, seg => seg.match(attendee))];
+          let wi = parseInt(action.wristband);
+
+          if (wi < segment.start || wi > segment.endAt) {
+            outOfBounds = true;
+          }
         }
 
-        return findIndex(state.attendees, (val) => {
+        return _.findIndex(state.attendees, (val) => {
           return (
             val.wristband === action.wristband ||
-            some(val.removedWristbands || [], (w) => w === action.wristband)
+            _.some(val.removedWristbands || [], (w) => w === action.wristband)
           ) && val.id !== id;
-        }) > -1;
+        }) > -1 || outOfBounds;
       })());
 
       return { ...state };
 
     case 'GET_NEXT_UNUSED_WRISTBAND':
-      let { index } = action;
-      let { dob } = state.attendees[index];
+      let { reference } = action;
+      let { dob } = (typeof reference === 'number' && state.attendees[reference as number]) ||
+        { dob: action.reference as Moment };
 
       action.callback((() => {
+        const comparer = { age: moment().startOf('day').diff(dob, 'years', true) };
 
-        const isAdult = moment()
-          .startOf('day')
-          .diff(dob, 'years', true) >= 21;
+        var popSegment = WristbandSegments[_.findIndex(WristbandSegments, seg => seg.match(comparer))];
 
-        let subset = filter(state.attendees, val => val !== null && (val.age >= 21) === isAdult);
+        let subset = _.filter(state.attendees, val => val !== null && popSegment.match(val));
 
-        let wristbands = flatten(map(subset, (val: Attendee) => {
+        let wristbands = _.flatten<number>(_.map(subset, (val: Attendee) => {
           let ret = val.removedWristbands || [];
           if (val.wristband) { ret.push(val.wristband); }
-          return ret as string[];
+          return _.map(ret, parseInt) as number[];
         }));
 
         let next = (
-          max(map(wristbands,
-            flow(
-              (val: string) => isAdult ? val : val.substring(1, 4),
-              parseInt
-            )
-          )) || 0
-        ) as number + 1;
+          _.max(wristbands) || 0
+        ) as number + popSegment.start;
 
-        return padStart(next.toString(), 4, isAdult ? '0000' : 'M000');
+        if (next > popSegment.endAt) {
+          return 'NONE';
+        }
+
+        return _.padStart(next.toString(), 4, '0000');
       })());
 
       return { ...state };

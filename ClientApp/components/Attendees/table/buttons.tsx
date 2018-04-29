@@ -1,17 +1,13 @@
 import * as React from 'react';
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { ApplicationState, AppThunkAction } from '../../../store';
-import {
-  actionCreators,
-  Attendee,
-  StatefulComponent,
-  StatefulComponentProps,
-  StatefulComponentState
-} from '../../../store/Attendees';
+import { ApplicationState, AppThunkAction } from 'store';
+import { actionCreators, Attendee } from 'store/attendees';
+import { StatefulComponentProps } from 'store/attendees/table';
 
 import { Button } from 'antd';
 import { without } from 'lodash';
+import $ from 'jquery';
 
 interface Props extends StatefulComponentProps {
   updateAttendee: (
@@ -43,7 +39,6 @@ class Buttons extends Component<Props, {}> {
   }
 
   private onCommit(event: React.FormEvent<HTMLButtonElement>) {
-    const $ = require('zeptojs');
     let interimValue = $(event.currentTarget)
       .closest('tr')
       .find('input[name="wristband"]')

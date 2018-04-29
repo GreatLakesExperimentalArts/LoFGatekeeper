@@ -3,18 +3,9 @@ import { Component } from 'react';
 import * as ReactDOM from 'react-dom';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { ApplicationState }  from '../../../store';
-
-import {
-  Attendee,
-  AttendeesState,
-  StatefulTable,
-  StatefulTableProps,
-  StatefulRow,
-  actionCreators,
-  StatefulTableState,
-  StatefulComponentState
-} from '../../../store/Attendees';
+import { ApplicationState }  from 'store';
+import { actionCreators, Attendee } from 'store/attendees';
+import { StatefulTable, StatefulRow } from 'store/attendees/table';
 
 import { Button, Table } from 'antd';
 import { ColumnProps } from 'antd/lib/table/interface';
@@ -25,8 +16,7 @@ import Buttons from './buttons';
 import RemovedWristbands from './removedWristbands';
 import ArrivalDate from './arrivalDate';
 
-import { Moment } from 'moment';
-import moment from 'moment';
+import $ from 'jquery';
 
 interface TableState {
   columns: ColumnProps<Attendee>[];
@@ -109,13 +99,13 @@ class AttendeesTable extends StatefulTable<TableState> {
     this.props.setTableRef(this);
   }
 
-  componentWillReceiveProps(nextProps: StatefulTableProps) {
+  componentWillReceiveProps(nextProps: AttendeesState) {
     if (nextProps.attendees.length > 0 && !this.state.hasPerformedInitialUpdate) {
       this.props.setTableRef(this);
 
       this.setState(
         { hasPerformedInitialUpdate: true },
-        () => this.props.updateSearch('')
+        () => this.props.updateSearch('', '')
       );
       return;
     }
@@ -146,7 +136,6 @@ class AttendeesTable extends StatefulTable<TableState> {
   }
 
   private onRecordBlur(event: React.MouseEvent<HTMLInputElement>) {
-    const $ = require('zeptojs');
     let currentRow = $(event.target).closest('tr').get(0);
     let relatedRow = $(event.relatedTarget).closest('tr').get(0);
 

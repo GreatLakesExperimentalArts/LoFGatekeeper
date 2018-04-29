@@ -3,17 +3,11 @@ import { Component } from 'react';
 import * as ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import ReactInputMask from 'react-input-mask';
-import { ApplicationState } from '../../../store';
-import {
-  actionCreators,
-  Attendee,
-  StatefulComponent,
-  StatefulComponentProps,
-  StatefulComponentState,
-  StatefulTable,
-  StatefulRow
-} from '../../../store/Attendees';
+import { ApplicationState } from 'store';
+import { actionCreators, Attendee } from 'store/attendees';
+import { StatefulComponentProps, StatefulRow } from 'store/attendees/table';
 
+import $ from 'jquery';
 import './style';
 
 export interface Props extends StatefulComponentProps {
@@ -67,7 +61,6 @@ class DobInput extends Component<Props, State> {
 
           if (next.value !== this.props.value) {
             setTimeout(() => {
-              const $ = require('zeptojs');
               $(ReactDOM.findDOMNode(this))
                 .closest('tr')
                 .find('input[name="wristband"]')

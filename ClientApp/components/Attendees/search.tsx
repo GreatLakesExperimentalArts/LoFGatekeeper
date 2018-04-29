@@ -2,19 +2,21 @@ import * as React from 'react';
 import { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { ApplicationState }  from '../../store';
-import * as AttendeesState from '../../store/Attendees';
+import { ApplicationState }  from 'store';
+
+import { actionCreators } from 'store/attendees';
+import { AttendeesState } from 'store/attendees/dto';
 
 import { Input, Select } from 'antd';
-
+import { SelectValue } from 'antd/lib/select';
 import { debounce, DebounceSettings, Cancelable, LoDashStatic } from 'lodash';
 
 const Option = Select.Option;
 const Search = Input.Search;
 
 type AttendeesProps =
-    AttendeesState.AttendeesState
-    & typeof AttendeesState.actionCreators
+    AttendeesState
+    & typeof actionCreators
     & RouteComponentProps<{}>;
 
 interface SearchBarState {
@@ -36,13 +38,13 @@ class AttendeeSearchBar extends Component<AttendeesProps, SearchBarState> {
     this.setState({ searchValue: '', categoryFilter: 'Everyone' });
   }
 
-  componentWillReceiveProps(nextProps: AttendeesProps) {
-    return;
-  }
-
   public render() {
     let selectBefore = (
-      <Select style={{ width: 150 }} value={this.state.categoryFilter || ''} onChange={this.onSelectChange}>
+      <Select
+        style={{ width: 150 }}
+        value={this.state.categoryFilter || ''}
+        onChange={this.onSelectChange}
+      >
         <Option value="Everyone">Everyone</Option>
         <Option value="EarlyEntry">Early Entry Only</Option>
         <Option value="Confirmed">Confirmed</Option>
@@ -59,8 +61,8 @@ class AttendeeSearchBar extends Component<AttendeesProps, SearchBarState> {
     );
   }
 
-  private onSelectChange(categoryFilter: string) {
-    this.setState({ categoryFilter }, this.debouncedSearch);
+  private onSelectChange(value: SelectValue) {
+    this.setState({ categoryFilter: value as string }, this.debouncedSearch);
   }
 
   private onInputChange(event: React.SyntheticEvent<HTMLInputElement>) {
@@ -71,5 +73,5 @@ class AttendeeSearchBar extends Component<AttendeesProps, SearchBarState> {
 
 export default connect(
   (state: ApplicationState) => state.attendees,
-  AttendeesState.actionCreators
+  actionCreators
 )(AttendeeSearchBar) as typeof AttendeeSearchBar;

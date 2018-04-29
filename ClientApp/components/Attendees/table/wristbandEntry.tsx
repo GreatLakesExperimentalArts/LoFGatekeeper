@@ -4,25 +4,16 @@ import { bindActionCreators } from 'redux';
 import * as ReactDOM from 'react-dom';
 import { connect, Dispatch } from 'react-redux';
 import InputMask from 'react-input-mask';
-import { ApplicationState, AppThunkAction } from '../../../store';
-import {
-  actionCreators,
-  Attendee,
-  StatefulComponent,
-  StatefulComponentProps,
-  StatefulComponentState,
-  StatefulTable,
-  StatefulRow,
-  CheckIfWristbandUsed,
-  GetNextUnusedWristband,
-  KnownAction
-} from '../../../store/Attendees';
+import { ApplicationState, AppThunkAction } from 'store';
+import { actionCreators, Attendee } from 'store/attendees';
+import { StatefulComponentProps, StatefulRow } from 'store/attendees/table';
 
+import $ from 'jquery';
 import './style';
 
 interface Props extends StatefulComponentProps {
-  checkIfWristbandUsed?: CheckIfWristbandUsed;
-  getNextUnusedWristband?: GetNextUnusedWristband;
+  checkIfWristbandUsed: (wristband: string, index: number, callback: (used: boolean) => void) => void;
+  getNextUnusedWristband: (index: number, callback: (next: string) => void) => void;
   setRowState: (index: number, state: Pick<StatefulRow, any>, callback?: () => void) => void;
 }
 
@@ -75,9 +66,9 @@ class InputComponent extends Component<Props, State> {
           <InputMask
             className={`${this.state.cssClass} ant-input ant-input-sm overlayed`}
             name="wristband"
-            mask="X999"
+            mask="9999"
             maskChar=""
-            formatChars={{ '9': '[0-9]', 'X': '[mM0-9]' }}
+            formatChars={{ '9': '[0-9]' }}
             disabled={this.props.disabled}
             value={this.props.value}
             onKeyDown={this.onKeyDown}
@@ -92,7 +83,7 @@ class InputComponent extends Component<Props, State> {
   private placeholder() {
     const { next } = this.state;
     const { value } = this.props;
-    return value.replace(/[m0-9]/gi, '\u00A0') + next.substring(value.length);
+    return value.replace(/[0-9]/gi, '\u00A0') + next.substring(value.length);
   }
 
   private onFocus(event: React.FocusEvent<HTMLInputElement>) {
@@ -103,8 +94,6 @@ class InputComponent extends Component<Props, State> {
   }
 
   private onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    const $ = require('zeptojs');
-
     if (event.key === 'Backspace' && event.currentTarget.value.trim() === '') {
       var dobInput = $(event.currentTarget)
         .closest('tr')
@@ -125,7 +114,6 @@ class InputComponent extends Component<Props, State> {
   }
 
   private onBlur(event: React.FocusEvent<HTMLInputElement>) {
-    const $ = require('zeptojs');
     var currentRow = $(event.target).closest('tr').get(0);
     var relatedRow = $(event.relatedTarget).closest('tr').get(0);
 

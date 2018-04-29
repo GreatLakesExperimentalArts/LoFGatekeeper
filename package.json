@@ -23,10 +23,13 @@
     "history": "4.6.3",
     "ignore-loader": "0.1.2",
     "import-lazy": "3.1.0",
+    "jquery": "^3.3.1",
     "js-to-less-var-loader": "1.0.4",
     "less": "2.7.1",
     "less-loader": "4.1.0",
     "lodash": "4.17.5",
+    "moment": "^2.22.1",
+    "momentjs": "^2.0.0",
     "node-noop": "1.0.0",
     "react": "15.6.1",
     "react-dev-utils": "^5.0.1",
@@ -43,11 +46,11 @@
     "tslint-react": "3.5.1",
     "webpack": "2.5.1",
     "webpack-hot-middleware": "2.18.2",
-    "webpack-merge": "4.1.0",
-    "zeptojs": "1.1.4"
+    "webpack-merge": "4.1.0"
   },
   "devDependencies": {
     "@types/history": "4.6.0",
+    "@types/jquery": "^3.3.1",
     "@types/lodash": "4.14.106",
     "@types/node": "9.6.0",
     "@types/react": "15.0.35",
@@ -60,7 +63,6 @@
     "@types/react-router-redux": "5.0.3",
     "@types/webpack": "2.2.15",
     "@types/webpack-env": "1.13.0",
-    "@types/zepto": "1.0.29",
     "jscodeshift": "0.5.0",
     "typescript": "2.8.1",
     "webpack-cli": "2.0.13"

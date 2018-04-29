@@ -11,6 +11,7 @@ TECHNICAL:
 - Backend
 	- Container: Docker
 	- Framework: ASP.NET Core 2.1.0-preview2-final
+	- Database:  LiteDB
 	- IoC:       Autofac 4.6.2
 	- Logging:   Serilog 2.6.0
 	- Service:   Topshelf 4.1.0

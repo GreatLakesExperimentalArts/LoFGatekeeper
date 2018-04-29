@@ -7,13 +7,20 @@ const CssRewritePlugin = require('css-rewrite-webpack-plugin');
 const merge = require('webpack-merge');
 const paths = require('./paths');
 
+function srcPath(subdir) {
+  return path.join(__dirname, 'ClientApp', subdir);
+}
+
 module.exports = (env) => {
     const isDevBuild = !(env && env.prod);
 
     const sharedConfig = () => ({
       stats: { modules: false },
       resolve: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx']
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        alias: {
+          store: srcPath('store')
+        }
       },
       output: {
         filename: '[name].js',
@@ -86,7 +93,9 @@ module.exports = (env) => {
                     loader: 'less-loader',
                     options: {
                       javascriptEnabled: true,
-                      // sourceMap: true
+                      modifyVars: {
+                        '@form-item-margin-bottom': '8px'
+                      }
                     }
                   }
                 ] })

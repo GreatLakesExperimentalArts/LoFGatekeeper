@@ -1,14 +1,9 @@
 import * as React from 'react';
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { ApplicationState, AppThunkAction } from '../../../store';
-import {
-  actionCreators,
-  Attendee,
-  StatefulComponent,
-  StatefulComponentProps,
-  StatefulComponentState
-} from '../../../store/Attendees';
+import { ApplicationState, AppThunkAction } from 'store';
+import { actionCreators, Attendee } from 'store/attendees';
+import { StatefulComponentProps } from 'store/attendees/table';
 
 class RemovedWristbands extends Component<StatefulComponentProps, {}> {
   render() {

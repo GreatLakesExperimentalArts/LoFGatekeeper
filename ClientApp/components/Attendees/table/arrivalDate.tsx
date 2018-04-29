@@ -1,14 +1,9 @@
 import * as React from 'react';
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { ApplicationState, AppThunkAction } from '../../../store';
-import {
-  actionCreators,
-  Attendee,
-  StatefulComponent,
-  StatefulComponentProps,
-  StatefulComponentState
-} from '../../../store/Attendees';
+import { ApplicationState, AppThunkAction } from 'store';
+import { actionCreators } from 'store/attendees';
+import { StatefulComponentProps } from 'store/attendees/table';
 
 class ArrivalDate extends Component<StatefulComponentProps, {}> {
   render() {
