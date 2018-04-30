@@ -28,6 +28,8 @@ interface State {
   wristbandNext: string;
   wristbandEnabled: boolean;
   parentsLoading: boolean;
+  parentsVisible: boolean;
+  parentsEnabled: boolean;
   parentsSuggested: string[];
 }
 
@@ -47,10 +49,10 @@ class AddAttendeeModal extends Component<Props, State> {
       wristbandNext: '',
       wristbandEnabled: false,
       parentsLoading: false,
+      parentsVisible: false,
+      parentsEnabled: false,
       parentsSuggested: []
     });
-
-    this.validateDOB.bind(this);
   }
 
   componentDidMount() {
@@ -138,15 +140,24 @@ class AddAttendeeModal extends Component<Props, State> {
               )}
             </div>
           </FormItem>
-          <FormItem {...formItemLayout} label="Parents">
-            {getFieldDecorator('parents', {
-              rules: [{ validator: this.validateParents }]
+          {this.state.parentsVisible ? (
+            <FormItem {...formItemLayout} label="Parents">
+              {getFieldDecorator('parents', {
+                rules: [{ validator: this.validateParents }]
+              })(
+                <Mention
+                  disabled={!this.state.parentsEnabled}
+                  suggestions={this.state.parentsSuggested}
+                  onSearchChange={this.searchForParents}
+                  notFoundContent={'No suggestions'}
+                />
+              )}
+            </FormItem>
+          ) : ''}
+          <FormItem {...formItemLayout} label="Note">
+            {getFieldDecorator('note', {
             })(
-              <Mention
-                suggestions={this.state.parentsSuggested}
-                onSearchChange={this.searchForParents}
-                notFoundContent={'No suggestions'}
-              />
+              <Input />
             )}
           </FormItem>
         </Form>
@@ -178,7 +189,11 @@ class AddAttendeeModal extends Component<Props, State> {
       }
 
       if (value && value.length === 10) {
-        this.setState({ wristbandEnabled: true });
+        var age = moment()
+          .startOf('day')
+          .diff(moment(value, dateFormat), 'years', true);
+
+        this.setState({ wristbandEnabled: true, parentsVisible: (age <= 13) });
       } else if (value && value.length < 10 && this.state.wristbandEnabled) {
         this.setState({ wristbandEnabled: false });
       }
@@ -242,7 +257,8 @@ class AddAttendeeModal extends Component<Props, State> {
         var spaces = val.replace(/[0-9]/gi, '\u00A0');
 
         this.setState({
-          wristbandPlaceholder: `${spaces}${this.state.wristbandNext.substr(spaces.length, 4 - spaces.length)}`
+          wristbandPlaceholder: `${spaces}${this.state.wristbandNext.substr(spaces.length, 4 - spaces.length)}`,
+          parentsEnabled: val.length === 4
         });
 
         return val;

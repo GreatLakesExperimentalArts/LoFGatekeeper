@@ -18,7 +18,8 @@ let connection: SignalR.HubConnection;
 import {
   Attendee as AttendeeIntl,
   AttendeesState as AttendeesStateIntl,
-  AttendeesValueState
+  AttendeesValueState,
+  AddAttendeeProps
 } from './dto';
 import { KnownAction } from './actions';
 import { StatefulTable, StatefulRow } from './table';
@@ -128,61 +129,6 @@ const unloadedState: AttendeesValueState = {
   searchFilter: ''
 };
 
-const addAttendeeProps = (state: AttendeesValueState, attendee: Attendee, index: number) => {
-  attendee.dob = moment(attendee.dob).startOf('day');
-
-  if (attendee.dob.year() === 1) {
-    attendee.dob = moment()
-      .startOf('day')
-      .subtract(13, 'years')
-      .subtract(1, 'seconds');
-  }
-
-  attendee.age = moment()
-    .startOf('day')
-    .diff(attendee.dob, 'years', true);
-
-  if (typeof attendee.arrivalDate === 'string') {
-    attendee.arrivalDate = moment(attendee.arrivalDate);
-  }
-
-  attendee.confirmed =
-    (attendee.wristband || '') !== '' &&
-    (attendee.arrivalDate || null) !== null &&
-    (attendee.arrivalDate as Moment).isValid();
-
-  attendee.index = index;
-
-  if (state.table) {
-    let row = attendee.row || new StatefulRow();
-
-    if (row.wristband.valid && attendee.confirmed) {
-      row = {
-        dob: { ...row.dob, value: '', disabled: true },
-        wristband: { ...row.wristband, value: '', valid: false, disabled: true },
-        buttons: { mode: 'commit' }
-      };
-    }
-
-    if (row.dob.static && row.wristband.static && !attendee.confirmed) {
-      row = {
-        dob: { ...row.dob, value: '', disabled: false },
-        wristband: { ...row.wristband, value: '', valid: false, disabled: true },
-        buttons: { mode: 'none' }
-      };
-    }
-
-    row.dob.static = attendee.confirmed;
-    row.dob.valid = attendee.dob.format('MM/DD/Y') === row.dob.value;
-    row.wristband.static = row.dob.static || !row.dob.valid;
-    row.wristband.disabled = !row.dob.valid;
-
-    attendee.row = row;
-  }
-
-  return attendee;
-};
-
 const WristbandSegments = [
   { match: (n: Pick<Attendee, any>) => n.age >= 21,               start:    1, endAt: 2400 },
   { match: (n: Pick<Attendee, any>) => n.age < 21 && n.age >= 13, start: 2401, endAt: 2550 },
@@ -199,7 +145,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
       };
 
     case 'RECEIVE_ATTENDEES':
-      _.each(action.attendees, (item, idx: number) => addAttendeeProps(state, item, idx));
+      _.each(action.attendees, (item, idx: number) => AddAttendeeProps(state, item, idx));
 
       return {
         ...state,
@@ -289,7 +235,21 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           ...action.attendee
         };
 
-        state.attendees[action.index] = addAttendeeProps(state, attendee, action.index);
+        state.attendees[action.index] = AddAttendeeProps(state, attendee, action.index);
+      }
+      return { ...state };
+
+    case 'SEARCH_FOR_PARENTS':
+      {
+        /*
+          interface SearchForParentsAction {
+            type: 'SEARCH_FOR_PARENTS';
+            lastName: string;
+            partial: string | null;
+            callback: (results: string[]) => void;
+          }
+        */
+
       }
       return { ...state };
 
@@ -367,7 +327,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
         let rowState = attendees[action.index].row || new StatefulRow();
 
         attendees[action.index].row = { ...rowState, ...action.state };
-        attendees[action.index] = addAttendeeProps(state, attendees[action.index], action.index);
+        attendees[action.index] = AddAttendeeProps(state, attendees[action.index], action.index);
 
         return { ...state, attendees };
       }

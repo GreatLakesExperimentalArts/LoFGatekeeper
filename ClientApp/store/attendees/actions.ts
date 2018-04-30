@@ -65,6 +65,7 @@ export type KnownAction =
   ReceiveAttendeesAction |
   RequestAttendeeUpdateAction |
   ReceiveAttendeeUpdateAction |
+  SearchForParentsAction |
   CheckIfWristbandUsedAction |
   GetNextUnusedWristbandAction |
   UpdateSearchAction |
