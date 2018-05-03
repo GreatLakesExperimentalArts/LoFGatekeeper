@@ -8,13 +8,12 @@ import Table from './table';
 import AddModal from './addModal';
 
 interface State {
-  showModal: boolean;
+  modal: JSX.Element | null;
 }
 
 export default class AttendeeSearch extends Component<{}, State> {
   componentWillMount() {
-    this.setState({ showModal: false });
-    this.onShowModal = this.onShowModal.bind(this);
+    this.setState({ modal: null });
   }
 
   render() {
@@ -25,12 +24,13 @@ export default class AttendeeSearch extends Component<{}, State> {
           <div style={{ width: '100%', textAlign: 'right', paddingTop: '10px' }}>
             <Button onClick={this.onShowModal}>Add Attendee</Button>
           </div>
-          {this.state.showModal && <AddModal />}
+          {this.state.modal}
         </div>
     );
   }
 
-  private onShowModal(event: React.MouseEvent<HTMLButtonElement>) {
-    this.setState({ showModal: true });
-  }
+  private onShowModal: ((event: React.MouseEvent<HTMLButtonElement>) => void) =
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      this.setState({ modal: <AddModal onCancel={(e) => this.setState({ modal: null })} /> });
+    }
 }

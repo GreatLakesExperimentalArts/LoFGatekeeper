@@ -12,6 +12,7 @@ import {
   StringIterator
 } from 'lodash';
 import * as _ from 'lodash';
+import StringSimilarity from 'string-similarity';
 
 let connection: SignalR.HubConnection;
 
@@ -23,6 +24,7 @@ import {
 } from './dto';
 import { KnownAction } from './actions';
 import { StatefulTable, StatefulRow } from './table';
+import AttendeeSearch from '../../components/Attendees';
 
 export type Attendee = AttendeeIntl;
 
@@ -98,6 +100,16 @@ export const actionCreators = {
 
     wristband = wristband || '';
     dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, reference, callback });
+  },
+  searchForParents: (
+      lastName: string,
+      partial: string | null,
+      remove: string[],
+      callback: (results: Attendee[]) => void
+    ):
+    AppThunkAction<KnownAction> => (dispatch, getState) => {
+
+    dispatch({ type: 'SEARCH_FOR_PARENTS', lastName, partial, remove, callback });
   },
   getNextUnusedWristband: (
       reference: number | Moment,
@@ -241,15 +253,30 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
     case 'SEARCH_FOR_PARENTS':
       {
-        /*
-          interface SearchForParentsAction {
-            type: 'SEARCH_FOR_PARENTS';
-            lastName: string;
-            partial: string | null;
-            callback: (results: string[]) => void;
+        let subset = _.filter(state.attendees, val => {
+          if (val === null) {
+            return false;
           }
-        */
 
+          return new RegExp(`^${action.partial || '[0-9]{4}$'}`, 'gi').test(val.wristband || '') &&
+            !action.remove
+              .map(r => r.replace(/[@]/gi, ''))
+              .some(r => r === (val.wristband || ''));
+        });
+
+        subset = _.sortBy(_.map(subset, (item) => {
+            return {
+              attendee: item,
+              closeness: 1 - StringSimilarity.compareTwoStrings(item.name.lastName, action.lastName),
+              wristband: item.wristband
+            };
+          }), ['closeness', 'wristband'])
+          .filter((item) => item.closeness !== 1)
+          .map((item) => item.attendee);
+
+        subset = _.take(subset, 20);
+
+        action.callback(subset);
       }
       return { ...state };
 

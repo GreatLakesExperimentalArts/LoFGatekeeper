@@ -5,7 +5,7 @@ import InputMask from 'react-input-mask';
 
 import { Form, Input, Tooltip, Icon, Cascader, Select, Row, Col, Checkbox, Button, AutoComplete, Modal, Mention } from 'antd';
 import { FormComponentProps } from 'antd/lib/form/Form';
-const { toContentState, getMentions } = Mention;
+const { toContentState, getMentions, Nav } = Mention;
 const FormItem = Form.Item;
 const Option = Select.Option;
 const AutoCompleteOption = AutoComplete.Option;
@@ -19,40 +19,50 @@ import { Attendee } from 'store/attendees/dto';
 
 import './index.less';
 
-type Props = FormComponentProps & typeof actionCreators;
+interface CustomProps extends FormComponentProps {
+  onCancel?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+type Props = CustomProps & typeof actionCreators;
 
 interface State {
   attendee: Attendee;
   dobPlaceholder: string;
+  dobValue: string;
   wristbandPlaceholder: string;
   wristbandNext: string;
+  wristbandValue: string;
   wristbandEnabled: boolean;
   parentsLoading: boolean;
   parentsVisible: boolean;
   parentsEnabled: boolean;
-  parentsSuggested: string[];
+  parentsSuggested: Array<typeof Nav>;
 }
 
 const dateFormat = 'MM/DD/YYYY';
 
+const defaultState: State = {
+  attendee: {
+    name: {
+      firstName: '',
+      lastName: ''
+    }
+  } as Attendee,
+  dobValue: '',
+  dobPlaceholder: '',
+  wristbandPlaceholder: '',
+  wristbandNext: '',
+  wristbandValue: '',
+  wristbandEnabled: false,
+  parentsLoading: false,
+  parentsVisible: false,
+  parentsEnabled: false,
+  parentsSuggested: []
+};
+
 class AddAttendeeModal extends Component<Props, State> {
   componentWillMount() {
-    this.setState({
-      attendee: {
-        name: {
-          firstName: '',
-          lastName: ''
-        }
-      } as Attendee,
-      dobPlaceholder: '',
-      wristbandPlaceholder: '',
-      wristbandNext: '',
-      wristbandEnabled: false,
-      parentsLoading: false,
-      parentsVisible: false,
-      parentsEnabled: false,
-      parentsSuggested: []
-    });
+    this.setState({ ...defaultState });
   }
 
   componentDidMount() {
@@ -60,7 +70,7 @@ class AddAttendeeModal extends Component<Props, State> {
   }
 
   render() {
-    const { getFieldDecorator } = this.props.form;
+    const { getFieldDecorator, setFieldsValue } = this.props.form;
 
     const formItemLayout = {
       labelCol: {
@@ -78,7 +88,23 @@ class AddAttendeeModal extends Component<Props, State> {
         title="Manually Add Attendee"
         visible={true}
         okText={'Ok'}
+        onOk={(e) => {
+          e.preventDefault();
+          this.props.form.validateFields((errors, values) => {
+            if (errors) {
+              return;
+            }
+            console.log(values);
+          });
+        }}
         cancelText={'Cancel'}
+        onCancel={(e) => {
+          e.preventDefault();
+          this.props.form.resetFields();
+          this.setState({ ...defaultState }, () => {
+            setFieldsValue({ dob: '', wristband: '' });
+          });
+        }}
         closable={false}
       >
         <Form layout="horizontal">
@@ -113,6 +139,7 @@ class AddAttendeeModal extends Component<Props, State> {
                   name="dob"
                   mask="99/99/9999"
                   maskChar=" "
+                  onChange={(e) => this.setState({ dobValue: e.target.value })}
                 />
               )}
             </div>
@@ -136,6 +163,7 @@ class AddAttendeeModal extends Component<Props, State> {
                   formatChars={{ '9': '[0-9]' }}
                   disabled={!this.state.wristbandEnabled}
                   onFocus={this.onFocusForWristband}
+                  onChange={(e) => this.setState({ wristbandValue: e.target.value })}
                 />
               )}
             </div>
@@ -154,8 +182,8 @@ class AddAttendeeModal extends Component<Props, State> {
               )}
             </FormItem>
           ) : ''}
-          <FormItem {...formItemLayout} label="Note">
-            {getFieldDecorator('note', {
+          <FormItem {...formItemLayout} label="Reason">
+            {getFieldDecorator('reason', {
             })(
               <Input />
             )}
@@ -168,8 +196,18 @@ class AddAttendeeModal extends Component<Props, State> {
   private searchForParents: ((value: any) => void) =
     (value: string) => {
       const searchValue = value.toLowerCase();
+      const { getFieldValue } = this.props.form;
 
-      // this.props.
+      this.props.searchForParents(getFieldValue('lastName'), searchValue, getMentions(getFieldValue('parents')), (hits) => {
+        this.setState({
+          parentsLoading: false,
+          parentsSuggested: hits.map(hit => (
+            <Nav value={hit.wristband} data={hit}>
+              <span>{hit.wristband}: {hit.name.lastName}, {hit.name.firstName}</span>
+            </Nav>
+          ))
+        });
+      });
       this.setState({ parentsLoading: true });
     }
 
@@ -280,4 +318,4 @@ class AddAttendeeModal extends Component<Props, State> {
 
 export default Form.create()(
   connect(null, actionCreators)(AddAttendeeModal)
-);
+) as typeof AddAttendeeModal;

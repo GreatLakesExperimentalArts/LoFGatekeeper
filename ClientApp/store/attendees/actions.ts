@@ -26,7 +26,8 @@ interface SearchForParentsAction {
   type: 'SEARCH_FOR_PARENTS';
   lastName: string;
   partial: string | null;
-  callback: (results: string[]) => void;
+  remove: string[];
+  callback: (results: Attendee[]) => void;
 }
 
 interface CheckIfWristbandUsedAction {
