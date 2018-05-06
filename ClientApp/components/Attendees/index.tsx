@@ -11,7 +11,7 @@ interface State {
   modal: JSX.Element | null;
 }
 
-export default class AttendeeSearch extends Component<{}, State> {
+export default class extends Component<{}, State> {
   componentWillMount() {
     this.setState({ modal: null });
   }

@@ -31,10 +31,6 @@ namespace LoFGatekeeper.Controllers
 		{
 			return db.GetCollection<Attendee>("attendees")
 				.FindAll()
-				.OrderBy(a => a.Wristband, new EmptyStringsLast())
-				.ThenBy(a => a.Department, new EmptyStringsLast())
-				.ThenBy(a => a.Name.LastName)
-				.ThenBy(a => a.Name.FirstName)
 				.ToList();
 		}
 	}

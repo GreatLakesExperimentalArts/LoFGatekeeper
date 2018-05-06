@@ -33,17 +33,17 @@ class AttendeesTable extends StatefulTable<TableState> {
         columns: [
           { title: 'Entry Date',
             dataIndex: 'permittedEntryDate',
-            render: (text: string, attendee: Attendee, index: number) => {
+            render: (text: string, attendee: Attendee) => {
               if (attendee.permittedEntryDate) {
                 return attendee.permittedEntryDate.format('ddd DD');
               }
               return '';
             }},
           { title: 'Department',
-            dataIndex: 'department'},
+            dataIndex: 'department' },
           { title: 'Full Name',
             key: 'fullName',
-            render: (text: string, attendee: Attendee, index: number) =>
+            render: (text: string, attendee: Attendee) =>
               `${attendee.name.firstName} ${attendee.name.lastName}`,
             sorter: (a: Attendee, b: Attendee) => {
               let sortLast = Intl.Collator().compare(a.name.lastName, b.name.lastName);
@@ -55,7 +55,7 @@ class AttendeesTable extends StatefulTable<TableState> {
           { title: 'DOB',
             key: 'dob',
             width: 110,
-            render: (text: string, attendee: Attendee, index: number) => (
+            render: (text: string, attendee: Attendee) => (
               <DOBInput
                 dataid={attendee.id}
                 table={this}
@@ -67,7 +67,7 @@ class AttendeesTable extends StatefulTable<TableState> {
           { title: 'Wristband',
             key: 'wristband',
             width: 104,
-            render: (text: string, attendee: Attendee, index: number) =>
+            render: (text: string, attendee: Attendee) =>
               <WristbandInput
                 dataid={attendee.id}
                 table={this}
@@ -96,13 +96,13 @@ class AttendeesTable extends StatefulTable<TableState> {
             title: 'Registration',
             dataIndex: 'id',
             render: (text: string) => (<samp className="form-inline">{text}</samp>)
-          }/*,
+          },
           {
             title: '',
             width: 26,
-            render: (text: string, attendee: Attendee, index: number) =>
+            render: (text: string, attendee: Attendee) =>
               <Button icon="close" type="danger" shape="circle" size="small" onClick={(e) => this.props.deleteAttendee(attendee.id)} ghost={true} />
-          }*/
+          }
         ]
       }, this.props.requestAttendees);
 

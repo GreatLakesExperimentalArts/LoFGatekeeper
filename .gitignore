@@ -318,3 +318,4 @@ yarn-debug.log*
 yarn-error.log*
 **/dist/**
 /dist/**
+**/data/**

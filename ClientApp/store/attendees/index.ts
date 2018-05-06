@@ -35,39 +35,17 @@ export const bindConnectionToStore = (store: Store<ApplicationState>, callback: 
 
   connection.on('Add', data => {
     const state = store.getState().attendees;
-
-    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, callback: () => {
-      if (state.table) {
-        setTimeout(() => {
-          store.dispatch({ type: 'UPDATE_SEARCH' });
-        }, 50);
-      }
-    }});
+    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data });
   });
 
   connection.on('Update', data => {
     const state = store.getState().attendees;
-
-    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, callback: () => {
-      if (state.table) {
-        setTimeout(() => {
-          state.table.forceUpdate();
-        }, 50);
-      }
-    }});
+    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data });
   });
 
   connection.on('Delete', data => {
     const state = store.getState().attendees;
-
-    store.dispatch({ type: 'DELETE_ATTENDEE', dataid: data.id, callback: () => {
-      if (state.table) {
-        setTimeout(() => {
-          // store.dispatch({ type: 'UPDATE_SEARCH' });
-          state.table.forceUpdate();
-        }, 50);
-      }
-    }});
+    store.dispatch({ type: 'DELETE_ATTENDEE', dataid: data.id });
   });
 
   connection.start();
@@ -205,6 +183,15 @@ const WristbandSegments = [
   { match: (n: Pick<Attendee, any>) => n.age < 13 && n.age > 0,   start: 2551, endAt: 2800 }
 ];
 
+const StandardSort = (attendees: ArrayLike<Attendee>) => {
+  return _.sortBy(attendees, [
+    (val: Attendee) => val.wristband !== '' && val.wristband,
+    (val: Attendee) => (val.department || '' !== '') && val.department,
+    (val: Attendee) => (val.name.lastName || '').toLowerCase(),
+    (val: Attendee) => (val.name.firstName || '').toLowerCase()
+  ]);
+};
+
 export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState, incomingAction: Action) => {
   const action = incomingAction as KnownAction;
   switch (action.type) {
@@ -239,12 +226,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           };
         }
 
-        attendees = _.sortBy(attendees, [
-          (val: Attendee) => val.wristband !== '' && val.wristband,
-          (val: Attendee) => (val.department || '' !== '') && val.department,
-          (val: Attendee) => (val.name.lastName || '').toLowerCase(),
-          (val: Attendee) => (val.name.firstName || '').toLowerCase()
-        ]);
+        attendees = StandardSort(attendees);
 
         if ((action.search || '').length === 0 && (action.categoryFilter || '') === '') {
           return {
@@ -255,7 +237,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
         }
 
         var exp = new RegExp(action.search, 'gi');
-        var result = _.filter(attendees, function (o: Attendee) {
+        let result = _.filter(attendees, function (o: Attendee) {
           switch (action.categoryFilter) {
             case 'EarlyEntry':
               if (!o.permittedEntryDate || !o.permittedEntryDate.isValid()) {
@@ -288,13 +270,13 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
             }
           });
         });
-      }
 
-      return {
-        ...state,
-        searchFilter: action.search,
-        result: result
-      };
+        return {
+          ...state,
+          searchFilter: action.search,
+          result: result
+        };
+      }
 
     case 'RECEIVE_ATTENDEE_UPDATE':
       {
@@ -304,10 +286,14 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           ...action.attendee
         });
 
-        let callback = _.get(action, 'callback') || (() => { return; });
-        callback();
+        let { result } = state;
+
+        if (!_.some(state.result, r => r.id === action.attendee.id)) {
+          result = [...state.result, state.attendees[action.attendee.id]];
+        }
+
+        return { ...state, result: StandardSort(result) };
       }
-      return { ...state };
 
     case 'ADD_ATTENDEE':
       return { ...state };
@@ -320,9 +306,6 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
             attendees[item.id] = AddAttendeeProps(state, item);
           }
         });
-
-        let callback = _.get(action, 'callback') || (() => { return; });
-        callback();
 
         return { ...state, attendees, result: _.filter(state.result, r => r.id !== action.dataid) };
       }
