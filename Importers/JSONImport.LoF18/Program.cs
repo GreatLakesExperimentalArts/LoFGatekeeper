@@ -1,4 +1,4 @@
-﻿namespace LoFGatekeeper.RandomData
+﻿namespace LoFGatekeeper.JSONImport.LoF18
 {
 	using LiteDB;
 	using System;
@@ -16,7 +16,7 @@
 	class Program
 	{
 		public class ImportFile
-		{
+		{v
 			public List<Result> Results { get; set; }
 
 			public class Result
