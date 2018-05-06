@@ -67,24 +67,26 @@ class Buttons extends Component<Props, {}> {
 export default connect(
   (state: ApplicationState, ownProps: StatefulComponentProps | undefined) => {
     if (ownProps) {
-      let attendee = state.attendees.attendees[ownProps.index];
-      let { confirmed, row } = state.attendees.attendees[ownProps.index];
-      let { valid } = row.wristband;
+      let attendee = state.attendees.attendees[ownProps.dataid];
+      if (attendee) {
+        let { confirmed, row } = state.attendees.attendees[ownProps.dataid];
+        let { valid } = row.wristband;
 
-      if (valid && !confirmed) {
-        row.buttons.mode = 'commit';
+        if (valid && !confirmed) {
+          row.buttons.mode = 'commit';
+        }
+
+        if (confirmed) {
+          row.buttons.mode = 'delete';
+        }
+
+        if (!confirmed && !valid && row.buttons.mode === 'commit') {
+          row.buttons.mode = 'none';
+        }
+
+        return { ...ownProps, ...row.buttons, attendee };
       }
-
-      if (confirmed) {
-        row.buttons.mode = 'delete';
-      }
-
-      if (!confirmed && !valid && row.buttons.mode === 'commit') {
-        row.buttons.mode = 'none';
-      }
-
-      return { ...ownProps, ...row.buttons, attendee };
     }
   },
   actionCreators
-)(Buttons) as typeof Buttons;
+)(Buttons) as any as typeof Buttons;

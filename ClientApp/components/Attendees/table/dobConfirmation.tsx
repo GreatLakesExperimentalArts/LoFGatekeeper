@@ -12,7 +12,6 @@ import './style';
 
 export interface Props extends StatefulComponentProps {
   attendee: Attendee;
-  setRowState: (index: number, state: Pick<StatefulRow, any>, callback?: () => void) => void;
 }
 
 interface State {
@@ -26,7 +25,6 @@ interface NamedEventTarget extends EventTarget {
 
 class DobInput extends Component<Props, State> {
   componentWillMount() {
-
     this.setState({
       placeholder: this.props.attendee.dob.format('MM/DD/Y'),
       cssClass: ''
@@ -115,14 +113,14 @@ class DobInput extends Component<Props, State> {
     const { value } = event.currentTarget;
 
     if (this.props.table && this.props.attendee) {
-      this.props.table.setInputState(this.props.index, 'dob', { value });
+      this.props.table.setInputState(this.props.dataid, 'dob', { value });
     }
   }
 
   private onBlur(event: React.FocusEvent<HTMLInputElement>) {
     let target = event.relatedTarget as NamedEventTarget;
     if (!this.props.attendee.confirmed && (!target || target.name !== 'wristband')) {
-      this.props.table.setInputState(this.props.index, 'dob', { value: '' });
+      this.props.table.setInputState(this.props.dataid, 'dob', { value: '' });
     }
   }
 }
@@ -130,9 +128,11 @@ class DobInput extends Component<Props, State> {
 export default connect(
   (state: ApplicationState, ownProps: Props | undefined) => {
     if (ownProps) {
-      let attendee = state.attendees.attendees[ownProps.index];
-      let row = attendee.row as StatefulRow;
-      return { ...ownProps, attendee, ...row.dob };
+      let attendee = state.attendees.attendees[ownProps.dataid];
+      if (attendee) {
+        let row = attendee.row as StatefulRow;
+        return { ...ownProps, attendee, ...row.dob };
+      }
     }
   },
   actionCreators

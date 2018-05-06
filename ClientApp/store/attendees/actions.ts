@@ -11,15 +11,23 @@ interface ReceiveAttendeesAction {
   attendees: Attendee[];
 }
 
-interface RequestAttendeeUpdateAction {
-  type: 'REQUEST_ATTENDEE_UPDATE';
-  attendee: Pick<Attendee, any>;
+interface AddAttendeeAction {
+  type: 'ADD_ATTENDEE';
+  attendee: Attendee;
+  reason: string;
+  parents?: Attendee[];
 }
 
 interface ReceiveAttendeeUpdateAction {
   type: 'RECEIVE_ATTENDEE_UPDATE';
-  index: number;
   attendee: Pick<Attendee, any>;
+  callback?: () => void;
+}
+
+interface DeleteAttendeeAction {
+  type: 'DELETE_ATTENDEE';
+  dataid: string;
+  callback: (results: Attendee[]) => void;
 }
 
 interface SearchForParentsAction {
@@ -56,7 +64,7 @@ interface SetTableRefAction {
 
 interface SetRowStateAction {
   type: 'SET_ROW_STATE';
-  index: number;
+  dataid: string;
   state: Pick<StatefulRow, any>;
   callback?: () => void;
 }
@@ -64,8 +72,9 @@ interface SetRowStateAction {
 export type KnownAction =
   RequestAttendeesAction |
   ReceiveAttendeesAction |
-  RequestAttendeeUpdateAction |
   ReceiveAttendeeUpdateAction |
+  AddAttendeeAction |
+  DeleteAttendeeAction |
   SearchForParentsAction |
   CheckIfWristbandUsedAction |
   GetNextUnusedWristbandAction |

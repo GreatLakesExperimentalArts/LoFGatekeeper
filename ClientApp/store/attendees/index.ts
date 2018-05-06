@@ -19,8 +19,10 @@ let connection: SignalR.HubConnection;
 import {
   Attendee as AttendeeIntl,
   AttendeesState as AttendeesStateIntl,
+  AttendeeMap,
   AttendeesValueState,
-  AddAttendeeProps
+  AddAttendeeProps,
+  AttendeesState
 } from './dto';
 import { KnownAction } from './actions';
 import { StatefulTable, StatefulRow } from './table';
@@ -31,20 +33,41 @@ export type Attendee = AttendeeIntl;
 export const bindConnectionToStore = (store: Store<ApplicationState>, callback: Function) => {
   connection = new SignalR.HubConnection('/hubs/attendee');
 
+  connection.on('Add', data => {
+    const state = store.getState().attendees;
+
+    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, callback: () => {
+      if (state.table) {
+        setTimeout(() => {
+          store.dispatch({ type: 'UPDATE_SEARCH' });
+        }, 50);
+      }
+    }});
+  });
+
   connection.on('Update', data => {
-    let state = store.getState().attendees;
-    let index = _.findIndex(state.attendees, (attendee: Attendee) => attendee.id === data.id);
+    const state = store.getState().attendees;
 
-    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, index });
+    store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data, callback: () => {
+      if (state.table) {
+        setTimeout(() => {
+          state.table.forceUpdate();
+        }, 50);
+      }
+    }});
+  });
 
-    if (state.table) {
-      setTimeout(() => {
-        let table = store.getState().attendees.table;
-        if (table) {
-          table.forceUpdate();
-        }
-      }, 100);
-    }
+  connection.on('Delete', data => {
+    const state = store.getState().attendees;
+
+    store.dispatch({ type: 'DELETE_ATTENDEE', dataid: data.id, callback: () => {
+      if (state.table) {
+        setTimeout(() => {
+          // store.dispatch({ type: 'UPDATE_SEARCH' });
+          state.table.forceUpdate();
+        }, 50);
+      }
+    }});
   });
 
   connection.start();
@@ -86,10 +109,45 @@ export const actionCreators = {
     }
 
     if (forceReceiveState) {
-      dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', index: attendee.index, attendee });
+      dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
       return;
     }
-    dispatch({ type: 'REQUEST_ATTENDEE_UPDATE', attendee });
+    dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
+  },
+  deleteAttendee: (id: string):
+    AppThunkAction<KnownAction> => (dispatch, getState) => {
+
+    addTask(
+      connection.send('Delete', { Id: id })
+    );
+  },
+  AddAttendee: (
+      attendee: Attendee,
+      reason: string,
+      parents?: string[]
+    ):
+    AppThunkAction<KnownAction> => (dispatch, getState) => {
+
+    if (parents) {
+      const state = getState().attendees as AttendeesState;
+      let { attendees } = state;
+
+      parents = _.map(parents, (parentValue) => {
+        var val = parentValue.replace(/^@/gi, '');
+        if (!(/[0-9]{4}/gi).test(val)) {
+          return;
+        }
+
+        var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
+        return parent.id;
+      }).filter(p => p !== undefined) as string[];
+    }
+
+    let { dob, name, wristband } = attendee;
+
+    addTask(
+      connection.send('Add', { attendee: { dob, name, wristband }, reason, parents: parents })
+    );
   },
   checkIfWristbandUsed: (
       wristband: string | null,
@@ -127,15 +185,15 @@ export const actionCreators = {
 
     dispatch({ type: 'SET_TABLE_REF', table });
   },
-  setRowState: (index: number, state: Pick<StatefulRow, any>):
+  setRowState: (dataid: string, state: Pick<StatefulRow, any>):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
 
-    dispatch({ type: 'SET_ROW_STATE', index, state });
+    dispatch({ type: 'SET_ROW_STATE', dataid, state });
   }
 };
 
 const unloadedState: AttendeesValueState = {
-  attendees: [],
+  attendees: {},
   result: [],
   table: null,
   searchFilter: ''
@@ -157,16 +215,21 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
       };
 
     case 'RECEIVE_ATTENDEES':
-      _.each(action.attendees, (item, idx: number) => AddAttendeeProps(state, item, idx));
+      {
+        let attendees: AttendeeMap = {};
+        _.each(action.attendees, (item) => {
+          attendees[item.id] = AddAttendeeProps(state, item);
+        });
 
-      return {
-        ...state,
-        attendees: action.attendees
-      };
+        return {
+          ...state,
+          attendees: attendees
+        };
+      }
 
     case 'UPDATE_SEARCH':
       {
-        let attendees = state.attendees;
+        let attendees = _.values(state.attendees);
 
         if (attendees === undefined) {
           return {
@@ -176,7 +239,14 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           };
         }
 
-        if (action.search.length === 0 && (action.categoryFilter || '') === '') {
+        attendees = _.sortBy(attendees, [
+          (val: Attendee) => val.wristband !== '' && val.wristband,
+          (val: Attendee) => (val.department || '' !== '') && val.department,
+          (val: Attendee) => (val.name.lastName || '').toLowerCase(),
+          (val: Attendee) => (val.name.firstName || '').toLowerCase()
+        ]);
+
+        if ((action.search || '').length === 0 && (action.categoryFilter || '') === '') {
           return {
             ...state,
             searchFilter: action.search,
@@ -226,30 +296,36 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
         result: result
       };
 
-    case 'REQUEST_ATTENDEE_UPDATE':
-      {
-        let attendee = action.attendee;
-        if (!state.attendees) {
-          return unloadedState;
-        }
-
-        state.attendees[attendee.index] = {
-          ...state.attendees[attendee.index],
-          ...attendee
-        };
-      }
-      return { ...state };
-
     case 'RECEIVE_ATTENDEE_UPDATE':
       {
-        let attendee = {
-          ...state.attendees[action.index],
+        state = state || unloadedState;
+        state.attendees[action.attendee.id] = AddAttendeeProps(state, {
+          ...state.attendees[action.attendee.id],
           ...action.attendee
-        };
+        });
 
-        state.attendees[action.index] = AddAttendeeProps(state, attendee, action.index);
+        let callback = _.get(action, 'callback') || (() => { return; });
+        callback();
       }
       return { ...state };
+
+    case 'ADD_ATTENDEE':
+      return { ...state };
+
+    case 'DELETE_ATTENDEE':
+      {
+        let attendees: AttendeeMap = {};
+        _.each(_.values(state.attendees), (item) => {
+          if (item.id !== action.dataid) {
+            attendees[item.id] = AddAttendeeProps(state, item);
+          }
+        });
+
+        let callback = _.get(action, 'callback') || (() => { return; });
+        callback();
+
+        return { ...state, attendees, result: _.filter(state.result, r => r.id !== action.dataid) };
+      }
 
     case 'SEARCH_FOR_PARENTS':
       {
@@ -303,7 +379,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           }
         }
 
-        return _.findIndex(state.attendees, (val) => {
+        return _.findIndex(_.values(state.attendees), (val) => {
           return (
             val.wristband === action.wristband ||
             _.some(val.removedWristbands || [], (w) => w === action.wristband)
@@ -315,7 +391,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
     case 'GET_NEXT_UNUSED_WRISTBAND':
       let { reference } = action;
-      let { dob } = (typeof reference === 'number' && state.attendees[reference as number]) ||
+      let { dob } = (typeof reference === 'string' && state.attendees[reference as string]) ||
         { dob: action.reference as Moment };
 
       action.callback((() => {
@@ -323,7 +399,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
         var popSegment = WristbandSegments[_.findIndex(WristbandSegments, seg => seg.match(comparer))];
 
-        let subset = _.filter(state.attendees, val => val !== null && popSegment.match(val));
+        let subset = _.filter(_.values(state.attendees), val => val !== null && popSegment.match(val));
 
         let wristbands = _.flatten<number>(_.map(subset, (val: Attendee) => {
           let ret = val.removedWristbands || [];
@@ -332,7 +408,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
         }));
 
         let next = (
-          _.max(wristbands) || 0
+          _.max([ (_.max(wristbands) || 0) - popSegment.start + 1, 0 ])
         ) as number + popSegment.start;
 
         if (next > popSegment.endAt) {
@@ -351,10 +427,10 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
     case 'SET_ROW_STATE':
       {
         let { attendees } = state;
-        let rowState = attendees[action.index].row || new StatefulRow();
+        let rowState = attendees[action.dataid].row || new StatefulRow();
 
-        attendees[action.index].row = { ...rowState, ...action.state };
-        attendees[action.index] = AddAttendeeProps(state, attendees[action.index], action.index);
+        attendees[action.dataid].row = { ...rowState, ...action.state };
+        attendees[action.dataid] = AddAttendeeProps(state, attendees[action.dataid]);
 
         return { ...state, attendees };
       }

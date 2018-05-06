@@ -14,10 +14,22 @@ div.ant-form-explain {
 	padding-bottom: 10px;
 }
 
-div.ant-form-item-control input.overlayed {
-	&[disabled],
-	&[disabled]:hover {
-		.outline(overlayed, #d9d9d9);
-		background-color: @background-color-base;
+div.ant-form-item-control {
+	&.has-success:after {
+		content: '';
+		display: none;
+	}
+	&.has-error div.ant-form-explain {
+		display:none;
+	}
+	&.has-error {
+		padding-bottom: 8px;
+	}
+	input.overlayed {
+		&[disabled],
+		&[disabled]:hover {
+			.outline(overlayed, #d9d9d9);
+			background-color: @background-color-base;
+		}
 	}
 }

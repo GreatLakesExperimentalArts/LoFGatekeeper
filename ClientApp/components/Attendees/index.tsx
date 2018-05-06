@@ -31,6 +31,13 @@ export default class AttendeeSearch extends Component<{}, State> {
 
   private onShowModal: ((event: React.MouseEvent<HTMLButtonElement>) => void) =
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      this.setState({ modal: <AddModal onCancel={(e) => this.setState({ modal: null })} /> });
+      this.setState({
+        modal: (
+          <AddModal
+            onOk={(e) => this.setState({ modal: null })}
+            onCancel={(e) => this.setState({ modal: null })}
+          />
+        )
+      });
     }
 }

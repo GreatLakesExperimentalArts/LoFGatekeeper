@@ -12,7 +12,7 @@ export interface Attendee {
   permittedEntryDate: Moment | null;
   arrivalDate: Moment | null;
   confirmed: boolean;
-  index: number;
+  department: string | null;
   row: StatefulRow;
 }
 
@@ -22,21 +22,25 @@ export interface AttendeeName {
   nickname: string;
 }
 
+export interface AttendeeMap {
+  [dataid: string]: Attendee;
+}
+
 export interface AttendeesState {
   searchFilter?: string;
-  attendees?: Attendee[];
+  attendees?: AttendeeMap;
   result?: Attendee[];
   table?: StatefulTable<{}> | null;
 }
 
 export interface AttendeesValueState {
   searchFilter: string;
-  attendees: Attendee[];
+  attendees: AttendeeMap;
   result: Attendee[];
   table: StatefulTable<{}> | null;
 }
 
-export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee, index: number) => {
+export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee) => {
   attendee.dob = moment(attendee.dob).startOf('day');
 
   if (attendee.dob.year() === 1) {
@@ -58,8 +62,6 @@ export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee,
     (attendee.wristband || '') !== '' &&
     (attendee.arrivalDate || null) !== null &&
     (attendee.arrivalDate as Moment).isValid();
-
-  attendee.index = index;
 
   if (state.table) {
     let row = attendee.row || new StatefulRow();

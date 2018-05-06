@@ -5,6 +5,7 @@ import { Link, RouteComponentProps } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { ApplicationState }  from 'store';
 import { actionCreators, Attendee } from 'store/attendees';
+import { AttendeesState } from 'store/attendees/dto';
 import { StatefulTable, StatefulRow } from 'store/attendees/table';
 
 import { Button, Table } from 'antd';
@@ -16,6 +17,7 @@ import Buttons from './buttons';
 import RemovedWristbands from './removedWristbands';
 import ArrivalDate from './arrivalDate';
 
+import * as _ from 'lodash';
 import $ from 'jquery';
 
 interface TableState {
@@ -53,44 +55,56 @@ class AttendeesTable extends StatefulTable<TableState> {
           { title: 'DOB',
             key: 'dob',
             width: 110,
-            render: (text: string, attendee: Attendee, index: number) =>
-              <DOBInput index={index} table={this} ref={input => {
-                this.setInputState(index, 'dob', { input });
-              }} />
-          },
+            render: (text: string, attendee: Attendee, index: number) => (
+              <DOBInput
+                dataid={attendee.id}
+                table={this}
+                ref={input => {
+                  this.setInputState(attendee.id, 'dob', { input });
+                }}
+              />
+            )},
           { title: 'Wristband',
             key: 'wristband',
             width: 104,
             render: (text: string, attendee: Attendee, index: number) =>
-              <WristbandInput index={index} table={this} ref={input => {
-                this.setInputState(index, 'wristband', { input });
-              }} />
-          },
+              <WristbandInput
+                dataid={attendee.id}
+                table={this}
+                ref={input => {
+                  this.setInputState(attendee.id, 'wristband', { input });
+                }}
+              />},
           { title: '',
             dataIndex: 'row.buttons.mode',
-            render: (text: string, attendee: Attendee, index: number) =>
-              <Buttons index={index} />
+            render: (text: string, attendee: Attendee) =>
+              <Buttons dataid={attendee.id} />
           },
           {
             title: '',
             dataIndex: 'removedWristbands',
-            render: (text: string, attendee: Attendee, index: number) =>
-              <RemovedWristbands index={index} />
+            render: (text: string, attendee: Attendee) =>
+              <RemovedWristbands dataid={attendee.id} />
           },
           {
             title: 'Arrived',
             key: 'arrivalDate',
-            render: (text: string, attendee: Attendee, index: number) =>
-              <ArrivalDate index={index} />
+            render: (text: string, attendee: Attendee) =>
+              <ArrivalDate dataid={attendee.id} />
           },
           {
             title: 'Registration',
             dataIndex: 'id',
             render: (text: string) => (<samp className="form-inline">{text}</samp>)
-          }
+          }/*,
+          {
+            title: '',
+            width: 26,
+            render: (text: string, attendee: Attendee, index: number) =>
+              <Button icon="close" type="danger" shape="circle" size="small" onClick={(e) => this.props.deleteAttendee(attendee.id)} ghost={true} />
+          }*/
         ]
-      },
-      this.props.requestAttendees);
+      }, this.props.requestAttendees);
 
     this.onRecordBlur = this.onRecordBlur.bind(this);
   }
@@ -100,7 +114,7 @@ class AttendeesTable extends StatefulTable<TableState> {
   }
 
   componentWillReceiveProps(nextProps: AttendeesState) {
-    if (nextProps.attendees.length > 0 && !this.state.hasPerformedInitialUpdate) {
+    if (nextProps.attendees && _.values(nextProps.attendees).length > 0 && !this.state.hasPerformedInitialUpdate) {
       this.props.setTableRef(this);
 
       this.setState(
@@ -117,22 +131,25 @@ class AttendeesTable extends StatefulTable<TableState> {
         className="attendee-table"
         dataSource={this.props.result}
         columns={this.state.columns}
-        rowKey={(attendee: Attendee) => attendee.id}
+        rowKey={this.rowKey}
         size="middle"
         onRow={(record) => {
           return {
             onBlur: this.onRecordBlur
           };
         }}
+        onChange={() => this.forceUpdate()}
         locale={{ emptyText: 'No Attendees Found' }}
       />
     );
   }
 
-  public setInputState(index: number, key: keyof StatefulRow, state: Pick<any, any> | any) {
-    let newRow = { ...(this.props.attendees[index].row || new StatefulRow()) };
-    newRow[key] = { ...newRow[key], ...state };
-    return this.props.setRowState(index, newRow);
+  public setInputState(dataid: string, key: keyof StatefulRow, state: Pick<any, any> | any) {
+    let row = this.props.attendees && this.props.attendees[dataid] && this.props.attendees[dataid].row;
+    if (row) {
+      row[key] = { ...row[key], ...state };
+      return this.props.setRowState(dataid, row);
+    }
   }
 
   private onRecordBlur(event: React.MouseEvent<HTMLInputElement>) {
@@ -142,14 +159,18 @@ class AttendeesTable extends StatefulTable<TableState> {
     if (relatedRow && currentRow !== relatedRow) {
       $(currentRow)
         .find('input')
-        .forEach((item: HTMLInputElement) => {
-          $(item).trigger('blur', { bubble: true });
+        .each((index: number, element: HTMLElement) => {
+          $(element).trigger('blur', { bubble: true });
         });
     }
+  }
+
+  private rowKey(record: {}, index: number) {
+    return _.get(record, 'id');
   }
 }
 
 export default connect(
   (state: ApplicationState) => state.attendees,
   actionCreators
-)(AttendeesTable) as typeof AttendeesTable;
+)(AttendeesTable) as any as typeof AttendeesTable;

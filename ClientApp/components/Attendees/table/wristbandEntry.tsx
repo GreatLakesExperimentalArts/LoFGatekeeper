@@ -41,9 +41,9 @@ class InputComponent extends Component<Props, State> {
   componentWillReceiveProps(next: Props) {
     if (this.props.table && this.props.attendee && next.attendee) {
       if (next.value && next.value.length === 4 && next.value !== this.props.value) {
-        this.props.checkIfWristbandUsed(next.value, this.props.index, (found) => {
+        this.props.checkIfWristbandUsed(next.value, this.props.dataid, (found) => {
           setTimeout(() => {
-            this.props.table.setInputState(this.props.index, 'wristband', { valid: !found });
+            this.props.table.setInputState(this.props.dataid, 'wristband', { valid: !found });
 
             this.setState({ cssClass:
               found
@@ -82,13 +82,13 @@ class InputComponent extends Component<Props, State> {
 
   private placeholder() {
     const { next } = this.state;
-    const { value } = this.props;
+    const value = this.props.value || '';
     return value.replace(/[0-9]/gi, '\u00A0') + next.substring(value.length);
   }
 
   private onFocus(event: React.FocusEvent<HTMLInputElement>) {
     this.props.getNextUnusedWristband(
-      this.props.index,
+      this.props.dataid,
       (next) => this.setState({ next })
     );
   }
@@ -126,7 +126,7 @@ class InputComponent extends Component<Props, State> {
     event.preventDefault();
     let value = event.currentTarget.value.trim().toUpperCase();
 
-    this.props.table.setInputState(this.props.index, 'wristband', { value, valid: false });
+    this.props.table.setInputState(this.props.dataid, 'wristband', { value, valid: false });
 
     if (value.length < 4) {
       this.setState({ 'cssClass': '' });
@@ -137,9 +137,11 @@ class InputComponent extends Component<Props, State> {
 const WristbandEntryInput = connect(
   (state: ApplicationState, ownProps: Props | undefined) => {
     if (ownProps) {
-      let attendee = state.attendees.attendees[ownProps.index];
-      let row = attendee.row as StatefulRow;
-      return { ...ownProps, attendee, ...row.wristband };
+      let attendee = state.attendees.attendees[ownProps.dataid];
+      if (attendee) {
+        let row = attendee.row as StatefulRow;
+        return { ...ownProps, attendee, ...row.wristband };
+      }
     }
 
     return { };

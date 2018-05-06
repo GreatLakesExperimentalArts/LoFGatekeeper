@@ -6,11 +6,11 @@ import { KnownAction } from './actions';
 
 export abstract class StatefulTable<T> extends Component<AttendeesState & typeof actionCreators, T> {
   public abstract setInputState(
-    index: number,
+    dataid: string,
     key: keyof StatefulRow,
     state: Pick<StatefulComponentState, any>,
     callback?: () => void
-  ): AppThunkAction<KnownAction>;
+  ): AppThunkAction<KnownAction> | undefined;
 }
 
 export class StatefulRow {
@@ -34,7 +34,7 @@ export abstract class StatefulComponent<
 }
 
 export class StatefulComponentProps implements StatefulComponentState {
-  index: number = -1;
+  dataid: string = '';
   attendee?: Attendee;
   table?: StatefulTable<any>;
   onValidated?: <T>(input: T) => void;

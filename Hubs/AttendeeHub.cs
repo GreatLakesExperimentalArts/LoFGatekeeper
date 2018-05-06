@@ -5,6 +5,8 @@ namespace LoFGatekeeper.Hubs
 	using System;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using System.Security.Cryptography;
+	using System.Text;
 	using Controllers;
 	using Microsoft.AspNetCore.SignalR;
 	using LiteDB;
@@ -44,7 +46,7 @@ namespace LoFGatekeeper.Hubs
 			Logger = context.Logger;
 		}
 
-		public override async Task OnConnectedAsync()
+		/* public override async Task OnConnectedAsync()
 		{
 			await Clients.All.SendAsync("ClientConnected");
 	    }
@@ -52,9 +54,56 @@ namespace LoFGatekeeper.Hubs
 	    public override async Task OnDisconnectedAsync(Exception ex)
 	    {
 		    await Clients.All.SendAsync("ClientDisconnected", "left");
-	    }
+	    } */
 
-		public class SetWristbandRequest
+		#region Add
+		public class AddRequest
+		{
+			public Attendee Attendee { get; set; }
+			public string Reason { get; set; }
+			public string[] Parents { get; set; }
+		}
+
+		public async Task Add(AddRequest request)
+		{
+			var collection = Database.GetCollection<Attendee>("attendees");
+
+			request.Attendee.Parents = request.Parents;
+			request.Attendee.ArrivalDate = DateTime.Now;
+
+			using (var hash = MD5.Create()) {
+				var next = collection.FindAll().Max(a => Int32.Parse(a.Id.Split('-')[0])) + 1;
+				var uniq = hash.ComputeHash(Encoding.UTF8.GetBytes($"{next} {request.Attendee.EmailAddress}"));
+				var utag = BitConverter.ToString(uniq)
+					.Replace("-", string.Empty)
+					.ToLower();
+
+				request.Attendee.Id = $"{next}-{utag}";
+			}
+
+			collection.Insert(request.Attendee);
+
+			// Logger.Information(Newtonsoft.Json.JsonConvert.SerializeObject(request));
+			await Clients.All.SendAsync("Add", request.Attendee);
+		}
+		#endregion
+
+		#region Delete
+		public class DeleteRequest
+		{
+			public string Id { get; set; }
+		}
+
+		public async Task Delete(DeleteRequest request)
+		{
+			var collection = Database.GetCollection<Attendee>("attendees");
+			collection.Delete(a => a.Id == request.Id);
+			await Clients.All.SendAsync("Delete", request);
+		}
+		#endregion
+
+		#region Update
+		public class UpdateRequest
 		{
 			public string id { get; set; }
 			public string Wristband { get; set; }
@@ -62,9 +111,9 @@ namespace LoFGatekeeper.Hubs
 			public string Date { get; set; }
 		}
 
-		public class SetWristbandResponse
+		public class UpdateResponse
 		{
-			public SetWristbandResponse(Attendee attendee)
+			public UpdateResponse(Attendee attendee)
 			{
 				id = attendee.Id;
 				Wristband = attendee.Wristband;
@@ -78,7 +127,7 @@ namespace LoFGatekeeper.Hubs
 			public DateTime? ArrivalDate { get; set; }
 		}
 
-	    public async Task Update(SetWristbandRequest request)
+	    public async Task Update(UpdateRequest request)
 		{
 			var collection = Database.GetCollection<Attendee>("attendees");
 			var attendee = collection.Find(x => x.Id == request.id)
@@ -110,7 +159,8 @@ namespace LoFGatekeeper.Hubs
 			}
 
 			collection.Update(attendee);
-			await Clients.All.SendAsync("Update", new SetWristbandResponse(attendee));
+			await Clients.All.SendAsync("Update", new UpdateResponse(attendee));
 	    }
+		#endregion
 	}
 }

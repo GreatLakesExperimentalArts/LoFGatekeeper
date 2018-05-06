@@ -14,8 +14,8 @@ class ArrivalDate extends Component<StatefulComponentProps, {}> {
 export default connect(
   (state: ApplicationState, ownProps: StatefulComponentProps | undefined) => {
     if (ownProps) {
-      let attendee = state.attendees.attendees[ownProps.index];
-      if (attendee.arrivalDate && attendee.arrivalDate.isValid()) {
+      let attendee = state.attendees.attendees[ownProps.dataid];
+      if (attendee && attendee.arrivalDate && attendee.arrivalDate.isValid()) {
         let value = attendee.arrivalDate.format('ddd DD @ HH:mm');
         return { ...ownProps, value };
       }

@@ -20,6 +20,7 @@ import { Attendee } from 'store/attendees/dto';
 import './index.less';
 
 interface CustomProps extends FormComponentProps {
+  onOk?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onCancel?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -94,7 +95,20 @@ class AddAttendeeModal extends Component<Props, State> {
             if (errors) {
               return;
             }
-            console.log(values);
+
+            var dob: string, wristband: string;
+
+            this.props.AddAttendee({
+              name: {
+                firstName: values.firstName,
+                lastName: values.lastName
+              },
+              ...({ dob, wristband } = values)
+            }, values.reason, getMentions(values.parents));
+
+            if (this.props.onOk) {
+              this.props.onOk(e);
+            }
           });
         }}
         cancelText={'Cancel'}
@@ -104,13 +118,20 @@ class AddAttendeeModal extends Component<Props, State> {
           this.setState({ ...defaultState }, () => {
             setFieldsValue({ dob: '', wristband: '' });
           });
+          if (this.props.onCancel) {
+            this.props.onCancel(e);
+          }
         }}
         closable={false}
       >
         <Form layout="horizontal">
           <FormItem {...formItemLayout} label="First Name">
             {getFieldDecorator('firstName', {
-              rules: [{ required: true, message: 'First Name is required' }]
+              rules: [
+                { required: true, message: 'First Name is required' },
+                { validator: this.validateName }
+              ],
+              validateTrigger: ['onBlur']
             })(
               <Input />
             )}
@@ -140,6 +161,14 @@ class AddAttendeeModal extends Component<Props, State> {
                   mask="99/99/9999"
                   maskChar=" "
                   onChange={(e) => this.setState({ dobValue: e.target.value })}
+                  onBlur={(e) => {
+                    if (e.target && e.target.value && (
+                      e.target.value.length < 10 || !moment(e.target.value.length, dateFormat).isValid()
+                    )) {
+                      e.preventDefault();
+                      e.target.focus();
+                    }
+                  }}
                 />
               )}
             </div>
@@ -193,6 +222,12 @@ class AddAttendeeModal extends Component<Props, State> {
     );
   }
 
+  private validateFirstName: ((rule: any, value: any, callback: any) => void) =
+    (rule: any, value: any, callback: any) => {
+      // setFields({ 'firstName': { value, errors:  } });
+      callback();
+    }
+
   private searchForParents: ((value: any) => void) =
     (value: string) => {
       const searchValue = value.toLowerCase();
@@ -218,7 +253,7 @@ class AddAttendeeModal extends Component<Props, State> {
 
   private validateDOB: ((rule: any, value: any, callback: any) => void) =
     (rule: any, value: any, callback: any) => {
-      const { setFields } = this.props.form;
+      const { setFields, setFieldsValue } = this.props.form;
 
       if (value && value.length === 10 && !moment(value, dateFormat).isValid()) {
         setFields({ 'wristband': { value: '', errors: null } });
@@ -232,6 +267,10 @@ class AddAttendeeModal extends Component<Props, State> {
           .diff(moment(value, dateFormat), 'years', true);
 
         this.setState({ wristbandEnabled: true, parentsVisible: (age <= 13) });
+        if (age < 13) {
+          setFieldsValue({ 'reason': 'Under-13' });
+        }
+
       } else if (value && value.length < 10 && this.state.wristbandEnabled) {
         this.setState({ wristbandEnabled: false });
       }

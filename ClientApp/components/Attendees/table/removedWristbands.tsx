@@ -14,9 +14,11 @@ class RemovedWristbands extends Component<StatefulComponentProps, {}> {
 export default connect(
   (state: ApplicationState, ownProps: StatefulComponentProps | undefined) => {
     if (ownProps) {
-      let attendee = state.attendees.attendees[ownProps.index];
-      let value = attendee.removedWristbands || [].join(', ');
-      return { ...ownProps, value };
+      let attendee = state.attendees.attendees[ownProps.dataid];
+      if (attendee) {
+        let value = attendee.removedWristbands || [].join(', ');
+        return { ...ownProps, value };
+      }
     }
   },
   actionCreators
