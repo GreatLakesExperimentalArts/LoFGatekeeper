@@ -29,6 +29,7 @@ import { StatefulTable, StatefulRow } from './table';
 import AttendeeSearch from '../../components/Attendees';
 
 export type Attendee = AttendeeIntl;
+export type AttendeeState = AttendeesStateIntl;
 
 export const bindConnectionToStore = (store: Store<ApplicationState>, callback: Function) => {
   connection = new SignalR.HubConnection('/hubs/attendee');
@@ -312,7 +313,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
     case 'SEARCH_FOR_PARENTS':
       {
-        let subset = _.filter(state.attendees, val => {
+        let subset = _.filter(_.values(state.attendees), val => {
           if (val === null) {
             return false;
           }
@@ -346,7 +347,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
         if (action.reference) {
           let attendee: Pick<Attendee, any>;
-          if (typeof action.reference === 'number' && action.reference >= 0) {
+          if (typeof action.reference === 'string') {
             attendee = state.attendees[action.reference];
             id = attendee.id;
           }

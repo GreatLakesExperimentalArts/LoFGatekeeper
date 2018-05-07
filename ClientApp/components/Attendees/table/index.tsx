@@ -11,11 +11,11 @@ import { StatefulTable, StatefulRow } from 'store/attendees/table';
 import { Button, Table } from 'antd';
 import { ColumnProps } from 'antd/lib/table/interface';
 
-import DOBInput from './dobConfirmation';
-import WristbandInput from './wristbandEntry';
-import Buttons from './buttons';
-import RemovedWristbands from './removedWristbands';
-import ArrivalDate from './arrivalDate';
+import DOBInput from './fields/dobConfirmation';
+import WristbandInput from './fields/wristbandEntry';
+import Buttons from './fields/buttons';
+import RemovedWristbands from './fields/removedWristbands';
+import ArrivalDate from './fields/arrivalDate';
 
 import * as _ from 'lodash';
 import $ from 'jquery';

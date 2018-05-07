@@ -8,7 +8,7 @@ import { actionCreators, Attendee } from 'store/attendees';
 import { StatefulComponentProps, StatefulRow } from 'store/attendees/table';
 
 import $ from 'jquery';
-import './style';
+import '../style';
 
 export interface Props extends StatefulComponentProps {
   attendee: Attendee;
