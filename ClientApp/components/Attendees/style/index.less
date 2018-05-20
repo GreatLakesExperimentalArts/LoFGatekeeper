@@ -15,13 +15,45 @@ div[data-placeholder] {
     }
 }
 
-button.ant-btn-background-ghost.ant-btn-danger.ant-btn-circle.ant-btn-sm {
+button.ant-btn-background-ghost.ant-btn-circle.ant-btn-sm {
 	padding-top: 2px;
 
-	&:hover {
+	&.ant-btn-danger:hover {
 		background-color: #f04134 !important;
 		color: #fff;
 	}
+
+	&.ant-btn-primary:hover {
+		background-color: #108ee9 !important;
+		color: #fff;
+	}
+}
+
+span.ageSpan {
+	font-size: 0.8em;
+}
+
+div.ant-table-wrapper.attendee-table {
+	td:nth-child(1n+8) {
+		padding: 0;
+
+		button.ant-btn.ant-btn-icon-only {
+			padding: 0 2px;
+			margin: 0;
+			height: auto;
+			border: 0;
+			background-color: transparent;
+			font-size: 18px;
+
+			&.ant-btn-danger:hover {
+				color: multiply(#f04134, #999999) !important;
+			}
+		}
+	}
+}
+
+.ant-form-item-control {
+	line-height: 1.0;
 }
 
 input.overlayed {

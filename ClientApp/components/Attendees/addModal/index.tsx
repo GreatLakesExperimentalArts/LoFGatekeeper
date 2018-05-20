@@ -4,7 +4,7 @@ import { connect, Dispatch } from 'react-redux';
 import InputMask from 'react-input-mask';
 
 import { Form, Input, Tooltip, Icon, Cascader, Select, Row, Col, Checkbox, Button, AutoComplete, Modal, Mention } from 'antd';
-import { FormComponentProps } from 'antd/lib/form/Form';
+import { FormComponentProps, FormCreateOption } from 'antd/lib/form/Form';
 const { toContentState, getMentions, Nav } = Mention;
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -22,6 +22,7 @@ import './index.less';
 interface CustomProps extends FormComponentProps {
   onOk?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onCancel?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  attendee: Attendee | null;
 }
 
 type Props = CustomProps & typeof actionCreators;
@@ -67,7 +68,23 @@ class AddAttendeeModal extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // this.props.form.validateFields(() => { return; });
+    const { setFields, validateFields } = this.props.form;
+
+    if (this.props.attendee) {
+      let a = this.props.attendee;
+      setFields({
+        'firstName': { value: a.name.firstName || '' },
+        'lastName': { value: a.name.lastName || '' },
+        'dob': { value: a.dob.format('MM/DD/YYYY') },
+        'emailAddress': { value: a.emailAddress || '' },
+        'wristband': { value: a.wristband || '' },
+        'parents': { value: toContentState(_.join(_.map(a.parents, (i) => {
+          console.log('search for parent', i);
+          return `@${this.props.getWristbandFromId(i)}`;
+        }), ', ')) }
+      });
+      validateFields(() => { return; });
+    }
   }
 
   render() {
@@ -86,7 +103,7 @@ class AddAttendeeModal extends Component<Props, State> {
 
     return (
       <Modal
-        title="Manually Add Attendee"
+        title={`${!this.props.attendee ? 'Manually Add' : 'Update'} Attendee`}
         visible={true}
         okText={'Ok'}
         onOk={(e) => {
@@ -96,15 +113,28 @@ class AddAttendeeModal extends Component<Props, State> {
               return;
             }
 
-            var dob: string, wristband: string;
+            var dob: string, wristband: string, emailAddress: string;
 
-            this.props.AddAttendee({
-              name: {
-                firstName: values.firstName,
-                lastName: values.lastName
-              },
-              ...({ dob, wristband } = values)
-            }, values.reason, getMentions(values.parents));
+            if (!this.props.attendee) {
+              this.props.AddAttendee({
+                name: {
+                  firstName: values.firstName,
+                  lastName: values.lastName
+                },
+                ...({ dob, wristband, emailAddress } = values)
+              }, values.reason, getMentions(values.parents));
+            } else {
+              this.props.updateAttendee({
+                ...this.props.attendee,
+                ...{
+                  name: {
+                    firstName: values.firstName,
+                    lastName: values.lastName
+                  },
+                  ...({ dob, wristband, emailAddress } = values)
+                }
+              }, true, getMentions(values.parents));
+            }
 
             if (this.props.onOk) {
               this.props.onOk(e);
@@ -152,7 +182,7 @@ class AddAttendeeModal extends Component<Props, State> {
                 ],
                 normalize: this.getNormalizedDOB,
                 getValueFromEvent: this.getValueForDOB,
-                validateTrigger: ['onKeyUp', 'onBlur']
+                validateTrigger: ['onChange', 'onBlur']
               })(
                 <InputMask
                   className="ant-input ant-input-lg overlayed"
@@ -173,16 +203,21 @@ class AddAttendeeModal extends Component<Props, State> {
               )}
             </div>
           </FormItem>
+          <FormItem {...formItemLayout} label="E-Mail">
+            {getFieldDecorator('emailAddress', {
+            })(
+              <Input />
+            )}
+          </FormItem>
           <FormItem {...formItemLayout} label="Wristband">
             <div data-placeholder={this.state.wristbandPlaceholder}>
               {getFieldDecorator('wristband', {
                 rules: [
                   { validator: this.validateWristbandRequires },
-                  { validator: this.validateWristbandValue },
-                  { message: 'Wristband is required', required: true }
+                  { validator: this.validateWristbandValue }
                 ],
                 getValueFromEvent: this.getValueForWristband,
-                validateTrigger: ['onBlur']
+                validateTrigger: ['onChange', 'onBlur']
               })(
                 <InputMask
                   className={`ant-input ant-input-lg overlayed`}
@@ -266,7 +301,7 @@ class AddAttendeeModal extends Component<Props, State> {
           .startOf('day')
           .diff(moment(value, dateFormat), 'years', true);
 
-        this.setState({ wristbandEnabled: true, parentsVisible: (age <= 13) });
+        this.setState({ wristbandEnabled: true, parentsVisible: (age <= 18) });
         if (age < 13) {
           setFieldsValue({ 'reason': 'Under-13' });
         }
@@ -279,7 +314,7 @@ class AddAttendeeModal extends Component<Props, State> {
 
   private getNormalizedDOB: ((val: any) => string) =
     (val: any) => {
-      return val && val.replace(/[/ ]+$/gi, '');
+      return (val && val.replace(/[/ ]+$/gi, '')) || '';
     }
 
   private getValueForDOB: ((a: any) => string) =
@@ -319,11 +354,17 @@ class AddAttendeeModal extends Component<Props, State> {
         return;
       }
 
-      this.props.checkIfWristbandUsed(value, moment(getFieldValue('dob'), dateFormat), (used) => {
+      var ref = this.props.attendee != null
+        ? this.props.attendee.id
+        : moment(getFieldValue('dob'), dateFormat);
+
+      this.props.checkIfWristbandUsed(value, ref, (used) => {
         if (used) {
           callback('Wristband unavailable');
         }
-        callback();
+        this.setState({
+          parentsEnabled: value.length === 4
+        }, callback);
       });
     }
 
@@ -334,8 +375,7 @@ class AddAttendeeModal extends Component<Props, State> {
         var spaces = val.replace(/[0-9]/gi, '\u00A0');
 
         this.setState({
-          wristbandPlaceholder: `${spaces}${this.state.wristbandNext.substr(spaces.length, 4 - spaces.length)}`,
-          parentsEnabled: val.length === 4
+          wristbandPlaceholder: `${spaces}${this.state.wristbandNext.substr(spaces.length, 4 - spaces.length)}`
         });
 
         return val;

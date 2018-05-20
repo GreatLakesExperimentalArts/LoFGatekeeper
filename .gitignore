@@ -319,3 +319,4 @@ yarn-error.log*
 **/dist/**
 /dist/**
 **/data/**
+*_secret.json

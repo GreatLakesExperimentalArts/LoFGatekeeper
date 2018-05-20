@@ -28,10 +28,10 @@ class Buttons extends Component<Props, {}> {
     switch (this.props.mode) {
       case 'commit':
         let committer = (event: React.MouseEvent<HTMLButtonElement>) => this.onCommit(event);
-        return (<Button icon="check" type="primary" size="small" onClick={committer} />);
+        return (<Button icon="check" shape="circle" type="primary" size="small" ghost={true} onClick={committer} />);
       case 'delete':
         let remover = (event: React.MouseEvent<HTMLButtonElement>) => this.onRemove(event);
-        return (<Button icon="delete" type="danger" size="small" onClick={remover} />);
+        return (<Button icon="close" shape="circle" type="danger" size="small" ghost={true} onClick={remover} />);
       case 'none':
       default:
         return (<span>&nbsp;</span>);

@@ -1,6 +1,7 @@
 import moment from 'moment';
 import { Moment } from 'moment';
 import { StatefulTable, StatefulRow } from './table';
+import * as _ from 'lodash';
 
 export interface Attendee {
   id: string;
@@ -11,8 +12,11 @@ export interface Attendee {
   removedWristbands: string[] | null;
   permittedEntryDate: Moment | null;
   arrivalDate: Moment | null;
+  emailAddress: string | null;
   confirmed: boolean;
   department: string | null;
+  themeCamp: string | null;
+  parents: string[] | null;
   row: StatefulRow;
 }
 
@@ -39,6 +43,10 @@ export interface AttendeesValueState {
   result: Attendee[];
   table: StatefulTable<{}> | null;
 }
+
+const Capitalize = (str: string) => (str || '').replace(/\w\S*/g,
+  (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+);
 
 export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee) => {
   attendee.dob = moment(attendee.dob).startOf('day');

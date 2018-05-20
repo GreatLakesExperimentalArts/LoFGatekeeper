@@ -9,6 +9,9 @@ namespace LoFGatekeeper.Hubs
 	using System.Text;
 	using Controllers;
 	using Microsoft.AspNetCore.SignalR;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Linq;
+	using JsonDiffPatchDotNet;
 	using LiteDB;
 	using Serilog;
 
@@ -103,34 +106,11 @@ namespace LoFGatekeeper.Hubs
 		#endregion
 
 		#region Update
-		public class UpdateRequest
-		{
-			public string id { get; set; }
-			public string Wristband { get; set; }
-			public string[] RemovedWristbands { get; set; }
-			public string Date { get; set; }
-		}
-
-		public class UpdateResponse
-		{
-			public UpdateResponse(Attendee attendee)
-			{
-				id = attendee.Id;
-				Wristband = attendee.Wristband;
-				RemovedWristbands = attendee.RemovedWristbands;
-				ArrivalDate = attendee.ArrivalDate;
-			}
-
-			public string id { get; set; }
-			public string Wristband { get; set; }
-			public string[] RemovedWristbands { get; set; }
-			public DateTime? ArrivalDate { get; set; }
-		}
-
-	    public async Task Update(UpdateRequest request)
+	    public async Task Update(Attendee request)
 		{
 			var collection = Database.GetCollection<Attendee>("attendees");
-			var attendee = collection.Find(x => x.Id == request.id)
+			var id = request.Id;
+			var attendee = collection.Find(x => x.Id == id)
 				.SingleOrDefault();
 
 			if (attendee == null)
@@ -139,27 +119,62 @@ namespace LoFGatekeeper.Hubs
 				return;
 			}
 
-			attendee.Wristband = request.Wristband;
-
-			if (request.RemovedWristbands != null)
-			{
-				var removed = new List<string>();
-				removed.AddRange(request.RemovedWristbands);
-				attendee.RemovedWristbands = removed
-					.Except(new[] { request.Wristband })
-					.Distinct()
-					.ToArray();
+			if (attendee.RemovedWristbands == null) {
+				attendee.RemovedWristbands = new string[] {};
 			}
 
-			Logger.Information($"Set Attendee {request.id} {request.Wristband} [{string.Join(", ", request.RemovedWristbands)}]");
-
-			if (attendee.ArrivalDate == null)
-			{
-				attendee.ArrivalDate = DateTime.Parse(request.Date);
+			if (string.IsNullOrEmpty(request.Wristband) && string.IsNullOrEmpty(attendee.Wristband)) {
+				request.Wristband = attendee.Wristband;
 			}
+
+			if (attendee.ArrivalDate != null) {
+				if (string.IsNullOrEmpty(request.Wristband) && request.RemovedWristbands.Length == 0) {
+					request.ArrivalDate = null;
+				}
+			}
+
+			foreach (var prop in attendee.GetType().GetProperties()) {
+				var type = prop.PropertyType;
+				if (type == typeof(DateTime) || (
+					type.IsGenericType &&
+					type.GetGenericTypeDefinition() == typeof(Nullable<>) &&
+					Nullable.GetUnderlyingType(type) == typeof(DateTime)
+				)) {
+					var src = prop.GetValue(request) as DateTime?;
+					var dst = prop.GetValue(attendee) as DateTime?;
+					if (src?.ToUniversalTime() == dst?.ToUniversalTime()) {
+						prop.SetValue(request, dst);
+					}
+				}
+			}
+
+			if (!string.IsNullOrEmpty(request.Wristband) && request.ArrivalDate == null) {
+				request.ArrivalDate = DateTime.UtcNow;
+			}
+
+			var patcher = new JsonDiffPatch();
+			var current = JObject.FromObject(attendee) as JToken;
+			var updates = JObject.FromObject(request);
+			var patches = patcher.Diff(current, updates);
+
+			current = patcher.Patch(current, patches);
+			JsonConvert.PopulateObject(current.ToString(), attendee);
+
+			var removed = new List<string>();
+			removed.AddRange(attendee.RemovedWristbands);
+			attendee.RemovedWristbands = removed
+				.Except(new[] { attendee.Wristband })
+				.Distinct()
+				.ToArray();
+
+			Logger.Information(JsonConvert.SerializeObject(new {
+				attendee.Id,
+				patches,
+				// attendee
+			}, Formatting.Indented));
 
 			collection.Update(attendee);
-			await Clients.All.SendAsync("Update", new UpdateResponse(attendee));
+			await Clients.All.SendAsync("Update", attendee);
 	    }
 		#endregion
 	}

@@ -18,11 +18,10 @@
 		public string Wristband { get; set; }
 		public string[] RemovedWristbands { get; set; }
 
-		[JsonProperty("parents", NullValueHandling = NullValueHandling.Ignore)]
+		[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 		public string[] Parents { get; set; }
 
 		private DateTime? _permittedEntryDate;
-		private DateTime? _arrivalDate;
 
 		public DateTime? PermittedEntryDate
 		{
@@ -36,15 +35,6 @@
 			}
 		}
 
-		public DateTime? ArrivalDate
-		{
-			get => _arrivalDate;
-			set {
-				if (value.GetValueOrDefault() == DateTime.MinValue)
-					return;
-
-				_arrivalDate = value;
-			}
-		}
+		public DateTime? ArrivalDate { get; set; }
 	}
 }

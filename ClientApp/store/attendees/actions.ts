@@ -41,7 +41,7 @@ interface SearchForParentsAction {
 interface CheckIfWristbandUsedAction {
   type: 'CHECK_IF_WRISTBAND_USED';
   wristband: string;
-  reference: number | Moment | null;
+  reference: string | Moment | null;
   callback: (used: boolean) => void;
 }
 

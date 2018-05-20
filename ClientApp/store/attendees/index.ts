@@ -41,6 +41,7 @@ export const bindConnectionToStore = (store: Store<ApplicationState>, callback: 
 
   connection.on('Update', data => {
     const state = store.getState().attendees;
+    console.log(data);
     store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data });
   });
 
@@ -66,7 +67,7 @@ export const actionCreators = {
   updateAttendee: (
       attendee: Pick<Attendee, any>,
       sendServerUpdate: boolean = false,
-      forceReceiveState: boolean = false
+      parents?: string[]
     ):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
 
@@ -74,23 +75,26 @@ export const actionCreators = {
       return;
     }
 
+    const state = getState().attendees as AttendeesState;
+    let { attendees } = state;
+
+    attendee.parents = _.map(parents || attendee.parents, (parentValue) => {
+        var val = parentValue.replace(/^@/gi, '');
+        if (!(/[0-9]{4}/gi).test(val)) {
+          return;
+        }
+
+        var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
+        return parent.id;
+      }).filter(p => p !== undefined) as string[];
+
+    console.log(attendee.parents);
+
     if (sendServerUpdate) {
-      const arrival = attendee.arrivalDate || moment();
-
-      addTask(
-        connection.send('Update', {
-          Id: attendee.id,
-          Wristband: attendee.wristband,
-          RemovedWristbands: attendee.removedWristbands,
-          Date: arrival.toISOString()
-        })
-      );
+      let { row, ...update } = attendee;
+      addTask(connection.send('Update', update));
     }
 
-    if (forceReceiveState) {
-      dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
-      return;
-    }
     dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
   },
   deleteAttendee: (id: string):
@@ -130,13 +134,20 @@ export const actionCreators = {
   },
   checkIfWristbandUsed: (
       wristband: string | null,
-      reference: number | Moment | null,
+      reference: string | Moment | null,
       callback: (used: boolean) => void
     ):
     AppThunkAction<KnownAction> => (dispatch, getState) => {
 
     wristband = wristband || '';
     dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, reference, callback });
+  },
+  getWristbandFromId: (id: string):
+    AppThunkAction<KnownAction> => (dispatch, getState) => {
+
+    const state = getState().attendees as AttendeesState;
+    let { attendees } = state;
+    return (_.find(attendees, (a) => a.id === id) || { wristband: null }).wristband;
   },
   searchForParents: (
       lastName: string,
@@ -259,10 +270,12 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
               break;
           }
 
-          return _.some(['name', 'wristband', 'removedWristbands', 'id'], function (s: keyof Attendee) {
+          return _.some(['name', 'emailAddress', 'wristband', 'removedWristbands', 'id'], function (s: keyof Attendee) {
             switch (s) {
               case 'name':
                 return exp.test(`${o.name.firstName} ${o.name.lastName}`);
+              case 'emailAddress':
+                return exp.test(`${o.emailAddress}`);
               case 'removedWristbands':
                 return _.findIndex(o.removedWristbands, (i: string & null) => exp.test(i || '')) > -1;
               default:

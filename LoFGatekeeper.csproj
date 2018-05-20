@@ -17,8 +17,8 @@
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.0-preview2-final" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.0.0-preview2-final" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="2.1.0-preview2-final" />
-    <PackageReference Include="APIology.ServiceProvider" version="1.0.9" />
-    <PackageReference Include="APIology.ServiceProvider.AspNetCore" version="1.0.26" />
+    <PackageReference Include="APIology.ServiceProvider" version="1.0.9" Version="1.0.9" />
+    <PackageReference Include="APIology.ServiceProvider.AspNetCore" version="1.0.26" Version="1.0.26" />
     <PackageReference Include="Autofac" Version="4.6.2" />
     <PackageReference Include="BinaryFog.NameParser" Version="2.3.0" />
     <PackageReference Include="LiteDB" Version="4.1.2" />
@@ -34,6 +34,7 @@
     <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
     <PackageReference Include="Topshelf" Version="4.1.0.117-develop" />
     <PackageReference Include="Topshelf.Serilog" Version="4.1.0.117-develop" />
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Interfaces\LoFGatekeeper.Interfaces.csproj" />
@@ -59,7 +60,7 @@
     <Exec Command="node node_modules/webpack/bin/webpack.js" />
     <ItemGroup>
       <DistFiles Include="wwwroot\dist\**; ClientApp\dist\**" />
-      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+      <ResolvedFileToPublish Include="@(DistFiles-&gt;'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
         <RelativePath>%(DistFiles.Identity)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>

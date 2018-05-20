@@ -3,17 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper", "LoFGatekeeper.csproj", "{D78F4AA7-2E42-4DFE-B215-195D69D1419E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper", "LoFGatekeeper.csproj", "{D78F4AA7-2E42-4DFE-B215-195D69D1419E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.Interfaces", "Interfaces\LoFGatekeeper.Interfaces.csproj", "{F039DC41-7B79-445B-A0BD-093B0B0274EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Interfaces", "Interfaces\LoFGatekeeper.Interfaces.csproj", "{F039DC41-7B79-445B-A0BD-093B0B0274EA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.BRTImport", "Importers\BRT\LoFGatekeeper.BRTImport.csproj", "{D75409A2-A04F-4846-BF40-802802DB4CBE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.BRTImport", "Importers\BRT\LoFGatekeeper.BRTImport.csproj", "{D75409A2-A04F-4846-BF40-802802DB4CBE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoFGatekeeper.RandomData", "Importers\RandomDataAPI\LoFGatekeeper.RandomData.csproj", "{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}"
-EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{B004C1BA-148A-4F07-9EA3-2EC4FB9CDD52}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.RandomData", "Importers\RandomDataAPI\LoFGatekeeper.RandomData.csproj", "{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Importers", "Importers", "{486C3DFF-3057-4A91-A0FF-59139EAADC59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.JSONImport.LoF18", "Importers\JSONImport.LoF18\LoFGatekeeper.Importers.JSONImport.LoF18.csproj", "{A18102E5-1C4E-48EF-A310-3947FD8EACBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.GSheetsAPI.EarlyEntry", "Importers\GSheetsAPI.EarlyEntry\LoFGatekeeper.Importers.GSheetsAPI.EarlyEntry.csproj", "{C15C14F2-14C9-4999-B399-C6F9BB882A2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,9 +37,14 @@ Global
 		{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B004C1BA-148A-4F07-9EA3-2EC4FB9CDD52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B004C1BA-148A-4F07-9EA3-2EC4FB9CDD52}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B004C1BA-148A-4F07-9EA3-2EC4FB9CDD52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A18102E5-1C4E-48EF-A310-3947FD8EACBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A18102E5-1C4E-48EF-A310-3947FD8EACBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A18102E5-1C4E-48EF-A310-3947FD8EACBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A18102E5-1C4E-48EF-A310-3947FD8EACBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C15C14F2-14C9-4999-B399-C6F9BB882A2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C15C14F2-14C9-4999-B399-C6F9BB882A2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C15C14F2-14C9-4999-B399-C6F9BB882A2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C15C14F2-14C9-4999-B399-C6F9BB882A2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,6 +52,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{D75409A2-A04F-4846-BF40-802802DB4CBE} = {486C3DFF-3057-4A91-A0FF-59139EAADC59}
 		{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D} = {486C3DFF-3057-4A91-A0FF-59139EAADC59}
+		{A18102E5-1C4E-48EF-A310-3947FD8EACBE} = {486C3DFF-3057-4A91-A0FF-59139EAADC59}
+		{C15C14F2-14C9-4999-B399-C6F9BB882A2A} = {486C3DFF-3057-4A91-A0FF-59139EAADC59}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85005E32-A21C-4016-9A9A-AF719B0F04BD}

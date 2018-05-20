@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "dependencies": {
     "@aspnet/signalr": "1.0.0-preview2-final",
+    "@fortawesome/fontawesome": "^1.1.8",
+    "@fortawesome/fontawesome-free-regular": "^5.0.13",
+    "@fortawesome/fontawesome-free-solid": "^5.0.13",
+    "@fortawesome/react-fontawesome": "^0.0.20",
     "antd": "2.13.13",
     "aspnet-prerendering": "3.0.1",
     "aspnet-webpack": "2.0.1",

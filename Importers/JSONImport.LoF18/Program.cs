@@ -1,4 +1,4 @@
-﻿namespace LoFGatekeeper.JSONImport.LoF18
+﻿namespace LoFGatekeeper.Importers.JSONImport.LoF18
 {
 	using LiteDB;
 	using System;
@@ -10,13 +10,12 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using AutoMapper;
-	using Flurl.Http;
 	using Newtonsoft.Json;
 
 	class Program
 	{
 		public class ImportFile
-		{v
+		{
 			public List<Result> Results { get; set; }
 
 			public class Result
@@ -46,7 +45,10 @@
 				Mapper.Initialize(cfg => {
 					cfg.CreateMap<ImportFile.Result, Attendee>()
 						.ForMember(dest => dest.Name, map => map.ResolveUsing(
-							mem => new ParsedFullName { FirstName = mem.FirstName, LastName = mem.LastName }
+							mem => new ParsedFullName {
+								FirstName = (mem.FirstName ?? "").Trim().ToLowerInvariant(),
+								LastName = (mem.LastName ?? "").Trim().ToLowerInvariant()
+							}
 						))
 						.ForMember(dest => dest.EmailAddress, map => map.ResolveUsing(mem => mem.Email))
 						.ForMember(dest => dest.Id, map => map.ResolveUsing(mem => {
