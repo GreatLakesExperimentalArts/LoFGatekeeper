@@ -20,7 +20,7 @@ export default class extends Component<{}, State> {
           </Row>
           <Row>
             <Col span={8}>Active</Col>
-            <Col span={16}>&nbsp;</Col>
+            <Col span={16}>&nbsp;1</Col>
           </Row>
         </div>
     );

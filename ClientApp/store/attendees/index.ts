@@ -1,7 +1,7 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator, Store } from 'redux';
 import { AppThunkAction, ApplicationState } from '../';
-import * as SignalR from '@aspnet/signalr';
+import * as signalR from '@aspnet/signalr';
 import { Moment } from 'moment';
 import moment from 'moment';
 import {
@@ -14,7 +14,7 @@ import {
 import * as _ from 'lodash';
 import StringSimilarity from 'string-similarity';
 
-let connection: SignalR.HubConnection;
+let connection: signalR.HubConnection;
 
 import {
   Attendee as AttendeeIntl,
@@ -32,7 +32,9 @@ export type Attendee = AttendeeIntl;
 export type AttendeeState = AttendeesStateIntl;
 
 export const bindConnectionToStore = (store: Store<ApplicationState>, callback: Function) => {
-  connection = new SignalR.HubConnection('/hubs/attendee');
+  connection = new signalR.HubConnectionBuilder()
+    .withUrl('/hubs/attendee')
+    .build();
 
   connection.on('Add', data => {
     const state = store.getState().attendees;
@@ -41,7 +43,6 @@ export const bindConnectionToStore = (store: Store<ApplicationState>, callback: 
 
   connection.on('Update', data => {
     const state = store.getState().attendees;
-    console.log(data);
     store.dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee: data });
   });
 
@@ -87,8 +88,6 @@ export const actionCreators = {
         var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
         return parent.id;
       }).filter(p => p !== undefined) as string[];
-
-    console.log(attendee.parents);
 
     if (sendServerUpdate) {
       let { row, ...update } = attendee;

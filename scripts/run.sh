@@ -1,3 +1,3 @@
 #!/bin/bash
 export ASPNETCORE_ENVIRONMENT=Development
-dotnet run -p LoFGatekeeper.csproj
+dotnet watch -p LoFGatekeeper.csproj run -p LoFGatekeeper.csproj

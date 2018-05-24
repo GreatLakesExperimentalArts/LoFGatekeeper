@@ -11,11 +11,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.BRTImport", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.RandomData", "Importers\RandomDataAPI\LoFGatekeeper.RandomData.csproj", "{719838F1-D4F7-4BB9-AAEE-5E3C9F42026D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.JSONImport.LoF18", "Importers\JSONImport.LoF18\JSONImport.LoF18.csproj", "{A18102E5-1C4E-48EF-A310-3947FD8EACBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.GSheetsAPI.EarlyEntry", "Importers\GSheetsAPI.EarlyEntry\GSheetsAPI.EarlyEntry.csproj", "{C15C14F2-14C9-4999-B399-C6F9BB882A2A}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Importers", "Importers", "{486C3DFF-3057-4A91-A0FF-59139EAADC59}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.JSONImport.LoF18", "Importers\JSONImport.LoF18\LoFGatekeeper.Importers.JSONImport.LoF18.csproj", "{A18102E5-1C4E-48EF-A310-3947FD8EACBE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Importers.GSheetsAPI.EarlyEntry", "Importers\GSheetsAPI.EarlyEntry\LoFGatekeeper.Importers.GSheetsAPI.EarlyEntry.csproj", "{C15C14F2-14C9-4999-B399-C6F9BB882A2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

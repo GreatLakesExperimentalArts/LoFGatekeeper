@@ -49,16 +49,6 @@ namespace LoFGatekeeper.Hubs
 			Logger = context.Logger;
 		}
 
-		/* public override async Task OnConnectedAsync()
-		{
-			await Clients.All.SendAsync("ClientConnected");
-	    }
-
-	    public override async Task OnDisconnectedAsync(Exception ex)
-	    {
-		    await Clients.All.SendAsync("ClientDisconnected", "left");
-	    } */
-
 		#region Add
 		public class AddRequest
 		{
@@ -86,7 +76,6 @@ namespace LoFGatekeeper.Hubs
 
 			collection.Insert(request.Attendee);
 
-			// Logger.Information(Newtonsoft.Json.JsonConvert.SerializeObject(request));
 			await Clients.All.SendAsync("Add", request.Attendee);
 		}
 		#endregion
@@ -169,8 +158,7 @@ namespace LoFGatekeeper.Hubs
 
 			Logger.Information(JsonConvert.SerializeObject(new {
 				attendee.Id,
-				patches,
-				// attendee
+				patches
 			}, Formatting.Indented));
 
 			collection.Update(attendee);
