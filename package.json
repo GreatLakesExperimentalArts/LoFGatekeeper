@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "dependencies": {
     "@aspnet/signalr": "1.0.0-rc1-update1",
-    "antd": "2.13.13",
+    "antd": "3.6.1",
     "aspnet-prerendering": "3.0.1",
     "aspnet-webpack": "2.0.3",
     "aspnet-webpack-react": "3.0.0",

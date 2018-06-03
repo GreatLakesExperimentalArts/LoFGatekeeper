@@ -37,7 +37,17 @@ interface TableState {
   showPreEventInfo: boolean;
   showEmail: boolean;
   showRegistration: boolean;
+  sorterFunction: (a: Attendee, b: Attendee) => number;
 }
+
+const sorters = {
+    wristband_ascend: (a: Attendee, b: Attendee) => {
+      return Intl.Collator().compare(a.wristband || '99999', b.wristband || '99999');
+    },
+    wristband_descend: (a: Attendee, b: Attendee) => {
+      return Intl.Collator().compare(a.wristband || '', b.wristband || '');
+    }
+  };
 
 class AttendeesTable extends StatefulTable<TableState> {
   private debouncedSearch = _.debounce(
@@ -54,11 +64,12 @@ class AttendeesTable extends StatefulTable<TableState> {
         modal: null,
         searchValue: '',
         categoryFilter: 'Everyone',
+        sorterFunction: sorters.wristband_ascend,
         columns: [
           { /* Entry Date */
             title: 'Entry Date',
             dataIndex: 'permittedEntryDate',
-            width: 100,
+            width: 110,
             render: (text: string, attendee: Attendee) => {
               if (attendee.permittedEntryDate) {
                 return attendee.permittedEntryDate.format('ddd DD');
@@ -161,7 +172,10 @@ class AttendeesTable extends StatefulTable<TableState> {
                 ref={input => {
                   this.setInputState(attendee.id, 'wristband', { input });
                 }}
-              />
+              />,
+            sorter: (a: Attendee, b: Attendee) => {
+              return this.state.sorterFunction(a, b);
+            }
           },
           { /* Buttons */
             title: '',
@@ -273,7 +287,14 @@ class AttendeesTable extends StatefulTable<TableState> {
           rowKey={this.rowKey}
           size="middle"
           onRow={(record) => { onBlur: this.onRecordBlur }}
-          onChange={() => this.forceUpdate()}
+          onChange={(pagination, filters, sorter) => {
+            if (sorter.column) {
+              let sortby = _.get(sorters, `${sorter.columnKey}_${sorter.order}`);
+              if (sortby) {
+                this.setState({ sorterFunction: sortby });
+              }
+            }
+          }}
           locale={{ emptyText: 'No Attendees Found' }}
         />
         <Row>

@@ -35,5 +35,8 @@
 
 		[JsonIgnore]
 		public string BurnerName {get; set;}
+
+		[JsonIgnore]
+		public bool Found { get; set; }
 	}
 }

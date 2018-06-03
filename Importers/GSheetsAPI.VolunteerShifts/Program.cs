@@ -71,6 +71,7 @@
 
 				using (var db = new LiteDB.LiteDatabase(@"LoFData.db"))
 				{
+
 					var shifts = ilists.Select(item => new ScheduledVolunteerShift {
 							Task = $"{item[0]}",
 							Begins = DateTime.ParseExact($"{item[1]}", "MM-dd-yyyy HH:mm", enUS).ToUniversalTime(),
@@ -79,8 +80,11 @@
 							VolunteerId = (string) item[item.Count - 1],
 							BurnerName = item.Count == 7 ? ((string) item[5]).ToLowerInvariant() : null
 						}).ToList();
+
+					// variable isolation
 					{
 						var collection = db.GetCollection<ScheduledVolunteerShift>("volunteerShifts");
+						collection.Delete(row => true);
 						collection.InsertBulk(shifts);
 					}
 
@@ -91,8 +95,12 @@
 							PreferredName = arg.Select(inner => inner.PreferredName).First(),
 							BurnerName = arg.Select(inner => inner.BurnerName).First()
 						});
+
+					// variable isolation
 					{
 						var collection = db.GetCollection<Volunteer>("volunteers");
+						collection.Delete(row => true);
+
 						var attendees = db.GetCollection<Attendee>("attendees");
 
 						foreach(var volunteer in volunteers) {
