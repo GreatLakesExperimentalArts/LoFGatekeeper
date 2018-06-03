@@ -70,7 +70,11 @@ export default connect(
       let attendee = state.attendees.attendees[ownProps.dataid];
       if (attendee) {
         let { confirmed, row } = state.attendees.attendees[ownProps.dataid];
-        let { valid } = row.wristband;
+        let { valid } = (row || {}).wristband || false;
+
+        if (!row) {
+          return { ...ownProps, attendee };
+        }
 
         if (valid && !confirmed) {
           row.buttons.mode = 'commit';

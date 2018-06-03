@@ -6,6 +6,7 @@ import * as _ from 'lodash';
 export interface Attendee {
   id: string;
   name: AttendeeName;
+  burnerName: string;
   dob: Moment;
   age: number;
   wristband: string | null;
@@ -23,7 +24,7 @@ export interface Attendee {
 export interface AttendeeName {
   firstName: string;
   lastName: string;
-  nickname: string;
+  nickName: string;
 }
 
 export interface AttendeeMap {
@@ -42,6 +43,20 @@ export interface AttendeesValueState {
   attendees: AttendeeMap;
   result: Attendee[];
   table: StatefulTable<{}> | null;
+  settings: Settings;
+  wristbandSegments: Array<WristbandSegment>;
+}
+
+export interface Settings {
+  eventEarlyEntryDate: Moment;
+  eventDefaultEntryDate: Moment;
+  eventEndDate: Moment;
+}
+
+export interface WristbandSegment {
+  match: string;
+  start: number;
+  endAt: number;
 }
 
 const Capitalize = (str: string) => (str || '').replace(/\w\S*/g,
@@ -66,11 +81,19 @@ export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee)
     attendee.arrivalDate = moment(attendee.arrivalDate);
   }
 
+  if (typeof attendee.permittedEntryDate === 'string') {
+    attendee.permittedEntryDate = moment(attendee.permittedEntryDate);
+  }
+
   attendee.confirmed =
     (attendee.wristband || '') !== '' &&
     (attendee.arrivalDate || null) !== null &&
     (attendee.arrivalDate as Moment).isValid();
 
+  return attendee;
+};
+
+export const AddTableProps = (state: AttendeesState, attendee: Attendee) => {
   if (state.table) {
     let row = attendee.row || new StatefulRow();
 
@@ -97,6 +120,4 @@ export const AddAttendeeProps = (state: AttendeesValueState, attendee: Attendee)
 
     attendee.row = row;
   }
-
-  return attendee;
 };

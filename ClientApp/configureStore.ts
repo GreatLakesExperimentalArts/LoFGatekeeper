@@ -11,15 +11,13 @@ import {
 import thunk from 'redux-thunk';
 import { routerReducer, routerMiddleware } from 'react-router-redux';
 import * as StoreModule from './store';
-import { ApplicationState, reducers } from './store';
+import { ApplicationState, reducers, bindSignalRHubsToStore } from './store';
 import { History } from 'history';
+import * as _ from 'lodash';
 
 export default function configureStore(history: History, initialState?: ApplicationState) {
-    // Build middleware. These are functions that can process the actions before they reach the store.
-    // tslint:disable-next-line:no-any
     const windowIfDefined = typeof window === 'undefined' ? null : window as any;
 
-    // If devTools is installed, connect to it
     const devToolsExtension = windowIfDefined &&
         windowIfDefined.__REDUX_DEVTOOLS_EXTENSION__ as () => GenericStoreEnhancer;
 
@@ -31,6 +29,10 @@ export default function configureStore(history: History, initialState?: Applicat
     // Combine all reducers and instantiate the app-wide store instance
     const allReducers = buildRootReducer(reducers);
     const store = createStoreWithMiddleware(allReducers, initialState) as Store<ApplicationState>;
+
+    if (windowIfDefined) {
+      bindSignalRHubsToStore(store);
+    }
 
     // Enable Webpack hot module replacement for reducers
     if (module.hot) {

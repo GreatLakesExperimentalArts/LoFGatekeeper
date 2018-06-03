@@ -1,19 +1,45 @@
-import * as Attendees from './attendees';
+import { Store, compose } from 'redux';
+import { RouterState } from 'react-router-redux';
+import { Moment } from 'moment';
 
-// The top-level state object
+import {
+  AttendeesState,
+  reducer as attendeeReducer,
+  actionCreators as attendeeActionCreators,
+  bindSignalRHub as bindAttendeeSignalRHub
+} from './attendees';
+
+import {
+  VolunteersState,
+  reducer as volunteerReducer,
+  actionCreators as volunteerActionCreators,
+  bindSignalRHub as bindVolunteerSignalRHub
+} from './volunteers';
+
 export interface ApplicationState {
-  attendees: Attendees.AttendeesState;
+  attendees: AttendeesState;
+  volunteers: VolunteersState;
+  routing: RouterState;
 }
 
-// Whenever an action is dispatched, Redux will update each top-level application state property using
-// the reducer with the matching name. It's important that the names match exactly, and that the reducer
-// acts on the corresponding ApplicationState property type.
 export const reducers = {
-  attendees: Attendees.reducer
+  attendees: attendeeReducer,
+  volunteers: volunteerReducer
 };
 
-// This type can be used as a hint on action creators so that its 'dispatch' and 'getState' params are
-// correctly typed to match your store.
+export const actionCreators = {
+  ...attendeeActionCreators,
+  ...volunteerActionCreators
+};
+
+export const bindSignalRHubsToStore: (store: Store<ApplicationState>) => void =
+  (store) => {
+    compose(
+      bindAttendeeSignalRHub,
+      bindVolunteerSignalRHub
+    )(store);
+  };
+
 export interface AppThunkAction<TAction> {
   (dispatch: (action: TAction) => void, getState: () => ApplicationState): void;
 }

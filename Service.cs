@@ -109,7 +109,10 @@ namespace LoFGatekeeper
 				.SingleInstance();
 
 			builder.RegisterType<AttendeeHubContext>()
-				.As<IAttendeeHubContext>()
+				.PropertiesAutowired()
+				.SingleInstance();
+
+			builder.RegisterType<VolunteerHubContext>()
 				.PropertiesAutowired()
 				.SingleInstance();
 
@@ -143,6 +146,7 @@ namespace LoFGatekeeper
 
 			app.UseSignalR(routes => {
 				routes.MapHub<AttendeeHub>("/hubs/attendee");
+				routes.MapHub<VolunteerHub>("/hubs/volunteer");
 			});
 
 			app.UseMvc(routes => {

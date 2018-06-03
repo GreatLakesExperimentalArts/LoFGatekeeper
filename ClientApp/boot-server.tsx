@@ -7,6 +7,10 @@ import { createMemoryHistory } from 'history';
 import { createServerRenderer, RenderResult } from 'aspnet-prerendering';
 import { routes } from './routes';
 import configureStore from './configureStore';
+import { ApplicationState } from 'store';
+import { Attendee } from 'store/attendees/dto';
+import moment from 'moment';
+import * as _ from 'lodash';
 
 export default createServerRenderer(params => {
     return new Promise<RenderResult>((resolve, reject) => {
@@ -14,7 +18,18 @@ export default createServerRenderer(params => {
         // corresponding to the incoming URL
         const basename = params.baseUrl.substring(0, params.baseUrl.length - 1); // Remove trailing slash
         const urlAfterBasename = params.url.substring(basename.length);
-        const store = configureStore(createMemoryHistory());
+
+        const config = require('../config.json') as any;
+        const store = configureStore(createMemoryHistory(), {
+          attendees: {
+            settings: {
+              eventEarlyEntryDate: moment(config.eventEarlyEntryDate),
+              eventDefaultEntryDate: moment(config.eventDefaultEntryDate),
+              eventEndDate: moment(config.eventEndDate),
+            },
+            wristbandSegments: config.wristbandSegments
+          }
+        } as any as ApplicationState);
         store.dispatch(replace(urlAfterBasename));
 
         // Prepare an instance of the application and perform an inital render that will
@@ -32,7 +47,7 @@ export default createServerRenderer(params => {
             resolve({ redirectUrl: routerContext.url });
             return;
         }
-        
+
         // Once any async tasks are done, we can perform the final render
         // We also send the redux store state, so the client can continue execution where the server left off
         params.domainTasks.then(() => {

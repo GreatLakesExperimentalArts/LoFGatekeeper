@@ -5,7 +5,6 @@
 	using System.Linq;
 	using System.Security.Cryptography;
 	using System.Text;
-	using Interfaces;
 	using BinaryFog.NameParser;
 	using System.Collections.Generic;
 	using System.IO;
@@ -60,12 +59,39 @@
 
 								return $"{mem.Id}-{utag}";
 							}
-						}));
+						}))
+						.ForMember(mem => mem.LastModified, map => map.UseValue(DateTime.UtcNow));
 				});
 
-				var test = Mapper.Map<List<Attendee>>(data.Where(mem => mem.Status == "paid").ToList());
+				var import = Mapper.Map<List<Attendee>>(data.Where(row => row.Status != "trouble").ToList());
 
-				collection.InsertBulk(test);
+				Console.WriteLine($"{import.Count()} rows in import file");
+
+				var dbdata = collection.FindAll().ToList();
+
+				Console.WriteLine($"{dbdata.Count()} rows in database");
+
+				var newData = dbdata.Concat(import)
+					.GroupBy(o => o.Id)
+					.Where(o => o.Count() == 1)
+					.Select(o => o.First())
+					.ToList();
+
+				if (newData.Count > 0) {
+					Console.WriteLine(JsonConvert.SerializeObject(newData, Formatting.Indented));
+					collection.InsertBulk(newData);
+				}
+
+				var updData = dbdata.Concat(import)
+					.OrderByDescending(o => o.LastModified)
+					.GroupBy(o => o.Id)
+					.Where(o => o.Select(i => i.Status).Distinct().Count() == 2)
+					.Select(o => { var last = o.Last(); last.Status = o.First().Status; return last; })
+					.ToList();
+
+				if (updData.Count > 0) {
+					Console.WriteLine(JsonConvert.SerializeObject(updData, Formatting.Indented));
+				}
 			}
 		}
     }

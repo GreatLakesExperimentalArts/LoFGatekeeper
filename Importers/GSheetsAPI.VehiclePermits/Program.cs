@@ -29,8 +29,6 @@
 
 			public string Department { get; set; }
 			public string Status { get; set; }
-			public Attendee Attendee { get; set; }
-			public string EmailAddress { get; set; }
 		}
 
 		static string[] Scopes = { SheetsService.Scope.SpreadsheetsReadonly };
@@ -62,7 +60,7 @@
 				String spreadsheetId = "1sOtWKPPJKgJo4m6RSg7V5kResfP00eph-cUBuKCrPf8";
 
 				var departments = service.Spreadsheets.Values
-					.Get(spreadsheetId, "Department Early Entry!A2:A")
+					.Get(spreadsheetId, "A2:A")
 					.Execute()
 					.Values
 					.Select(RowData => (string) RowData[0])
@@ -70,7 +68,7 @@
 
 				var values = service.Spreadsheets
 					.Values
-					.Get(spreadsheetId, "Department Early Entry!C2:H")
+					.Get(spreadsheetId, "C2:H")
 					.Execute()
 					.Values;
 
@@ -81,15 +79,10 @@
 					try
 					{
 						var department = departments[values.IndexOf(item)];
-						var entryDate = $"{set[2]}";
+						var registrationId = $"{set[3]}";
+						var entryDate = $"{set[2]}/2018".Substring(3);
 						var firstName = $"{set[0]}";
 						var lastName = $"{set[1]}";
-
-						var registrationId = "";
-						if (set.Count >= 4) {
-							registrationId = $"{set[3]}";
-						}
-
 						var dob = "";
 						if (set.Count >= 5) {
 							dob = $"{set[4]}";
@@ -101,7 +94,6 @@
 						}
 
 						items.Add(new Hashtable {
-							{ "Camp", "" },
 							{ "Department", department },
 							{ "Registration Number", registrationId },
 							{ "Entry Date Requested", entryDate },
@@ -119,24 +111,43 @@
 			}
 
 			{
-				String spreadsheetId = "1sOtWKPPJKgJo4m6RSg7V5kResfP00eph-cUBuKCrPf8";
+				String spreadsheetId = "1J4UcJKYBPzQfh7jKnxXRo7EniuDPCob_XVIp3qtQLs0";
 
 				var values = service.Spreadsheets
 					.Values
-					.Get(spreadsheetId, "Theme Camp Early Entry!A2:F")
+					.Get(spreadsheetId, "B3:J")
 					.Execute()
 					.Values;
 
 				foreach (var item in values) {
 					if (item.Count >= 5) {
+						string rawDob = (string) item[3];
+						if (rawDob == "") {
+							rawDob = "1/1/1901";
+						}
+
+						string[] split = rawDob.Split('/', '-', '.', ' ');
+						if (split[2].Length == 2) {
+							split[2] = $"19{split[2]}";
+						}
+						rawDob = $"{split[0]}/{split[1]}/{split[2]}";
+
+						string rawEntry = (string) item[0];
+						var exp = new Regex("^(.+)(-Jun)$");
+						if (exp.IsMatch(rawEntry)) {
+							rawEntry = $"6/{exp.Match(rawEntry).Groups[1].Value}";
+						}
+
+						split = rawEntry.Split('/', '-', '.');
+						rawEntry = $"{split[0]}/{split[1]}/2018";
+
 						items.Add(new Hashtable {
 							{ "Camp", (string) item[1] },
-							{ "Department", "" },
 							{ "ComboName", Regex.Replace((string) item[2], @"\s", " ").Trim() },
-							{ "DOB", (string) item[3] },
-							{ "Entry Date Requested", (string) item[0] },
+							{ "DOB", rawDob },
+							{ "Entry Date Requested", rawEntry },
 							{ "EmailAddress", (string) item[4] },
-							{ "Registration Number", item.Count == 6 ? (string) item[5] : null }
+							// { "Registration Number", item.Count == 9 ? (string) item[8] : null }
 						});
 					}
 				}
@@ -189,15 +200,6 @@
 							).Count() >= 2 &&
 							a.DOB == DateTime.Parse((string)item["DOB"])
 						);
-					} else if (item.ContainsKey("DOB") && !string.IsNullOrEmpty((string) item["DOB"])) {
-						var nameParts = $"{item["First Name"]} {item["Last Name"]}".Trim().ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).ToList();
-
-						attendee = collection.FindOne(a =>
-							nameParts.Intersect(
-								(a.Name.LastName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries)
-							).Count() >= 1 &&
-							a.EmailAddress == (string)item["EmailAddress"]
-						);
 					}
 
 					var entryDate = DateTime.Parse((string) item["Entry Date Requested"]);
@@ -230,62 +232,23 @@
 							: (item.ContainsKey("Registration Number"))
 								? (string) item["Registration Number"]
 								: "",
-						Status = attendee == null ? "NOTFOUND" : attendee.Status,
-						EmailAddress = (string) item["EmailAddress"],
-						Attendee = attendee
+						Status = attendee == null ? "" : "FOUND"
 					});
 
 					// TODO: Add EE data for attendee
 				}
 
-				foreach (var result in results.Where(a => a.Attendee.Status == "paid")) {
+				foreach (var result in results.Where(i => i.Status != "FOUND")) {
 					var ent = (result.Department ?? result.Camp);
 
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
+					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,10}\t{4,5}\t{5,38}\t{6,5}",
 						ent.Substring(0, Math.Min(40, ent.Length)),
 						$"{result.FirstName} {result.LastName}",
+						result.DOB?.ToString("MM/dd/yyyy"),
 						result.EntryDate.ToString("MM/dd/yyyy"),
 						"",
-						result.Status,
-						result.EmailAddress
-					));
-
-					result.Attendee.ThemeCamp = result.Camp;
-					result.Attendee.Department = result.Department;
-					result.Attendee.PermittedEntryDate = result.EntryDate;
-
-					collection.Update(result.Attendee);
-				}
-
-				foreach (var result in results.Where(a => a.Attendee.Status != "paid")) {
-					var ent = (result.Department ?? result.Camp);
-
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
-						ent.Substring(0, Math.Min(40, ent.Length)),
-						$"{result.FirstName} {result.LastName}",
-						result.EntryDate.ToString("MM/dd/yyyy"),
-						"",
-						result.Status,
-						result.EmailAddress
-					));
-
-					result.Attendee.ThemeCamp = result.Camp;
-					result.Attendee.Department = result.Department;
-					result.Attendee.PermittedEntryDate = result.EntryDate;
-
-					collection.Update(result.Attendee);
-				}
-
-				foreach (var result in results.Where(a => a.Attendee == null)) {
-					var ent = (result.Department ?? result.Camp);
-
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
-						ent.Substring(0, Math.Min(40, ent.Length)),
-						$"{result.FirstName} {result.LastName}",
-						result.EntryDate.ToString("MM/dd/yyyy"),
-						"",
-						result.Status,
-						result.EmailAddress
+						result.Id,
+						result.Status
 					));
 				}
 
@@ -296,12 +259,11 @@
 
 				Console.WriteLine("DATE   : POP+ POP= ");
 
-				var poptot = 0;
 				foreach (var day in daily) {
-					Console.WriteLine(String.Format("{0}: {1,4} {2,5}",
+					Console.WriteLine(String.Format("{0}: {1,4} {1,5}",
 						day.Key.ToString("ddd dd"),
 						day.Count(),
-						poptot += day.Count()
+						daily.Where(p => p.Key <= day.Key).Count()
 					));
 				}
 			}
