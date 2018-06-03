@@ -220,7 +220,6 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
     case 'RECEIVE_ATTENDEES':
       {
-        console.log(state);
         let attendees: AttendeeMap = {};
         _.each(action.attendees, (item) => {
           attendees[item.id] = AddAttendeeProps(state, item);
