@@ -14,7 +14,6 @@ import '../style';
 interface Props extends StatefulComponentProps {
   checkIfWristbandUsed: (wristband: string, index: number, callback: (used: boolean) => void) => void;
   getNextUnusedWristband: (index: number, callback: (next: string) => void) => void;
-  setRowState: (index: number, state: Pick<StatefulRow, any>, callback?: () => void) => void;
 }
 
 interface State {
@@ -139,14 +138,14 @@ const WristbandEntryInput = connect(
     if (ownProps) {
       let attendee = state.attendees.attendees[ownProps.dataid];
       if (attendee) {
-        let row = attendee.row as StatefulRow;
-        return { ...ownProps, attendee, ...row.wristband };
+        let row = attendee.row as StatefulRow || {};
+        return { ...ownProps, attendee, ...(row.wristband || {}) };
       }
     }
 
     return { };
   },
   actionCreators
-)(InputComponent);
+)(InputComponent as any);
 
 export default WristbandEntryInput;

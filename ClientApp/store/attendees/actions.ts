@@ -55,6 +55,7 @@ interface UpdateSearchAction {
   type: 'UPDATE_SEARCH';
   search: string;
   categoryFilter: string;
+  force: boolean;
 }
 
 interface SetTableRefAction {

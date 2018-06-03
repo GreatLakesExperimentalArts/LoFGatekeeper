@@ -75,11 +75,12 @@ class AddAttendeeModal extends Component<Props, State> {
       setFields({
         'firstName': { value: a.name.firstName || '' },
         'lastName': { value: a.name.lastName || '' },
+        'nickName': { value: a.name.nickName || '' },
+        'burnerName': { value: a.burnerName || '' },
         'dob': { value: a.dob.format('MM/DD/YYYY') },
         'emailAddress': { value: a.emailAddress || '' },
         'wristband': { value: a.wristband || '' },
         'parents': { value: toContentState(_.join(_.map(a.parents, (i) => {
-          console.log('search for parent', i);
           return `@${this.props.getWristbandFromId(i)}`;
         }), ', ')) }
       });
@@ -113,27 +114,32 @@ class AddAttendeeModal extends Component<Props, State> {
               return;
             }
 
-            var dob: string, wristband: string, emailAddress: string;
+            var dob: string;
+            var wristband: string;
+            var emailAddress: string;
+            var burnerName: string;
 
             if (!this.props.attendee) {
               this.props.AddAttendee({
                 name: {
                   firstName: values.firstName,
-                  lastName: values.lastName
+                  lastName: values.lastName,
+                  nickName: values.nickName
                 },
-                ...({ dob, wristband, emailAddress } = values)
-              }, values.reason, getMentions(values.parents));
+                ...({ dob, wristband, emailAddress, burnerName } = values)
+              }, values.reason, values.parents ? getMentions(values.parents) : null);
             } else {
               this.props.updateAttendee({
                 ...this.props.attendee,
                 ...{
                   name: {
                     firstName: values.firstName,
-                    lastName: values.lastName
+                    lastName: values.lastName,
+                    nickName: values.nickName
                   },
-                  ...({ dob, wristband, emailAddress } = values)
+                  ...({ dob, wristband, emailAddress, burnerName } = values)
                 }
-              }, true, getMentions(values.parents));
+              }, true, values.parents ? getMentions(values.parents) : null);
             }
 
             if (this.props.onOk) {
@@ -170,6 +176,16 @@ class AddAttendeeModal extends Component<Props, State> {
             {getFieldDecorator('lastName', {
               rules: [{ required: true, message: 'Last Name is required' }]
             })(
+              <Input />
+            )}
+          </FormItem>
+          <FormItem {...formItemLayout} label="Preferred name">
+            {getFieldDecorator('nickName', {})(
+              <Input />
+            )}
+          </FormItem>
+          <FormItem {...formItemLayout} label="Burner name">
+            {getFieldDecorator('burnerName', {})(
               <Input />
             )}
           </FormItem>

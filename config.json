@@ -1,3 +1,10 @@
 {
-  "DefaultNoEntryBefore": ""
+  "eventEarlyEntryDate": "06-08-2018",
+  "eventDefaultEntryDate": "06-13-2018",
+  "eventEndDate": "06-17-2018",
+  "wristbandSegments": [
+    { "match": "n.age >= 21", "start": 1, "endAt": 2400 },
+    { "match": "n.age < 21 && n.age >= 13", "start": 2401, "endAt": 2550 },
+    { "match": "n.age < 13 && n.age > 0", "start": 2551, "endAt": 2800 }
+  ]
 }

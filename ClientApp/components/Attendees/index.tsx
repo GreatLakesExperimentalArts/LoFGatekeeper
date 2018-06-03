@@ -5,7 +5,7 @@ import { Link, RouteComponentProps } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { ApplicationState }  from 'store';
 import { actionCreators, Attendee } from 'store/attendees';
-import { AttendeesState } from 'store/attendees/dto';
+import { AttendeesState, AddTableProps } from 'store/attendees/dto';
 import { StatefulTable, StatefulRow } from 'store/attendees/table';
 
 import { Input, Select, Button, Switch, Table, Row, Col, Form } from 'antd';
@@ -26,6 +26,7 @@ import './style';
 
 import * as _ from 'lodash';
 import $ from 'jquery';
+import moment, { Moment } from 'moment';
 
 interface TableState {
   columns: ColumnProps<Attendee>[];
@@ -57,16 +58,48 @@ class AttendeesTable extends StatefulTable<TableState> {
           { /* Entry Date */
             title: 'Entry Date',
             dataIndex: 'permittedEntryDate',
+            width: 100,
             render: (text: string, attendee: Attendee) => {
               if (attendee.permittedEntryDate) {
                 return attendee.permittedEntryDate.format('ddd DD');
               }
               return '';
+            },
+            sorter: (a: Attendee, b: Attendee) => {
+              if (a.permittedEntryDate !== null
+                  && b.permittedEntryDate !== null
+                  && a.permittedEntryDate.valueOf() !== b.permittedEntryDate.valueOf()
+                ) {
+                return a.permittedEntryDate.valueOf() < b.permittedEntryDate.valueOf() ? -1 : 1;
+              }
+
+              if ((a.permittedEntryDate || moment.min()).valueOf() === (b.permittedEntryDate || moment.min()).valueOf()) {
+                let sortLast = Intl.Collator().compare(a.name.lastName, b.name.lastName);
+                if (sortLast === 0) {
+                  return Intl.Collator().compare(a.name.firstName, b.name.firstName);
+                }
+                return sortLast;
+              }
+
+              if (a.permittedEntryDate == null) {
+                return 1;
+              }
+
+              return -1;
             }
           },
           { /* Camp / Department */
             title: 'Camp / Department',
-            dataIndex: 'department'
+            dataIndex: 'department',
+            render: (text: string, attendee: Attendee) => {
+              if (attendee.department) {
+                return `${attendee.department}`;
+              }
+              if (attendee.themeCamp) {
+                return `${attendee.themeCamp}`;
+              }
+              return '';
+            }
           },
           { /* Full Name */
             title: 'Full Name',
@@ -171,7 +204,7 @@ class AttendeesTable extends StatefulTable<TableState> {
               <Button icon="delete" type="danger" onClick={(e) => this.props.deleteAttendee(attendee.id)} />
           }
         ]
-      }, this.props.requestAttendees);
+      });
 
     this.onRecordBlur = this.onRecordBlur.bind(this);
   }
@@ -216,7 +249,10 @@ class AttendeesTable extends StatefulTable<TableState> {
       <div>
         <Search
           addonBefore={selectBefore}
-          onKeyUp={this.onSearchInputChange}
+          onChange={this.onSearchInputChange}
+          value={this.state.searchValue}
+          onFocus={() => { this.setState({ searchValue: '' }); }}
+          onBlur={(e) => { this.props.updateSearch(this.state.searchValue, this.state.categoryFilter); }}
           style={{padding: '25px 0'}}
         />
         <Table
@@ -336,6 +372,10 @@ class AttendeesTable extends StatefulTable<TableState> {
 }
 
 export default connect(
-  (state: ApplicationState) => state.attendees,
+  (state: ApplicationState) => {
+    _.each(state.attendees.attendees, _.partial(AddTableProps, state.attendees));
+
+    return state.attendees;
+  },
   actionCreators
 )(AttendeesTable) as any as typeof AttendeesTable;

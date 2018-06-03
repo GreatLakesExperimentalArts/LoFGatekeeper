@@ -39,7 +39,8 @@ module.exports = (env) => {
                     'env'
                   ],
                   plugins: [
-                    ['import', { libraryName: "antd", style: true }]
+                    ['import', { libraryName: "antd", style: true }],
+                    ['transform-runtime', { 'polyfill': false, 'regenerator': true }]
                   ]
                 }
               },
@@ -56,17 +57,8 @@ module.exports = (env) => {
       },
       plugins: [
         new webpack.NamedModulesPlugin(),
-        // new webpack.DefinePlugin(env.stringified),
-        // new webpack.HotModuleReplacementPlugin(),
         new CaseSensitivePathsPlugin(),
-        // new WatchMissingNodeModulesPlugin(paths.appNodeModules),
         new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
-        /* new ForkTsCheckerWebpackPlugin({
-          async: false,
-          watch: paths.appSrc,
-          tsconfig: paths.appTsConfig,
-          tslint: paths.appTsLint,
-        }) */
         new webpack.DefinePlugin({
           'process.env.NODE_ENV': isDevBuild ? '"development"' : '"production"'
         })

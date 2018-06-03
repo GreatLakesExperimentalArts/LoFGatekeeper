@@ -30,7 +30,7 @@ namespace LoFGatekeeper.Controllers
 		public dynamic Get()
 		{
 			return db.GetCollection<Attendee>("attendees")
-				.FindAll()
+				.Find(i => i.Status == "paid")
 				.ToList();
 		}
 	}

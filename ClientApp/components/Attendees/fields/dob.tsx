@@ -130,8 +130,8 @@ export default connect(
     if (ownProps) {
       let attendee = state.attendees.attendees[ownProps.dataid];
       if (attendee) {
-        let row = attendee.row as StatefulRow;
-        return { ...ownProps, attendee, ...row.dob };
+        let row = attendee.row as StatefulRow || {};
+        return { ...ownProps, attendee, ...(row.dob || {}) };
       }
     }
   },

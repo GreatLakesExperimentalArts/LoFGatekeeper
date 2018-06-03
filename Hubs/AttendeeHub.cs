@@ -1,8 +1,7 @@
-using System.Collections.Generic;
-
 namespace LoFGatekeeper.Hubs
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Security.Cryptography;
@@ -15,14 +14,7 @@ namespace LoFGatekeeper.Hubs
 	using LiteDB;
 	using Serilog;
 
-	internal interface IAttendeeHubContext
-	{
-		LiteDatabase Database { get; set; }
-
-		ILogger Logger { get; set; }
-	}
-
-	internal class AttendeeHubContext : IAttendeeHubContext
+	internal class AttendeeHubContext
 	{
 		public LiteDatabase Database { get; set; }
 
@@ -37,12 +29,12 @@ namespace LoFGatekeeper.Hubs
 
 	internal class AttendeeHub : Hub
 	{
-		private IAttendeeHubContext AttendeeHubContext { get; set; }
+		private AttendeeHubContext AttendeeHubContext { get; set; }
 
 		private ILogger Logger { get; set; }
 		private LiteDatabase Database { get; set; }
 
-		public AttendeeHub(IAttendeeHubContext context)
+		public AttendeeHub(AttendeeHubContext context)
 		{
 			AttendeeHubContext = context ?? throw new ArgumentNullException(nameof(context));
 			Database = context.Database;
@@ -77,6 +69,20 @@ namespace LoFGatekeeper.Hubs
 			collection.Insert(request.Attendee);
 
 			await Clients.All.SendAsync("Add", request.Attendee);
+		}
+		#endregion
+
+		#region Fetch
+		public class FetchRequest
+		{
+			public string Id { get; set; }
+		}
+
+		public async Task Fetch(DeleteRequest request)
+		{
+			var collection = Database.GetCollection<Attendee>("attendees");
+			var attendee = collection.FindOne(a => a.Id == request.Id);
+			await Clients.All.SendAsync("Update", attendee);
 		}
 		#endregion
 
@@ -117,7 +123,8 @@ namespace LoFGatekeeper.Hubs
 			}
 
 			if (attendee.ArrivalDate != null) {
-				if (string.IsNullOrEmpty(request.Wristband) && request.RemovedWristbands.Length == 0) {
+				if (string.IsNullOrEmpty(request.Wristband) &&
+					(request.RemovedWristbands.Length == 0 || request.ArrivalDate < DateTime.Parse("06/08/2018"))) {
 					request.ArrivalDate = null;
 				}
 			}
@@ -150,7 +157,9 @@ namespace LoFGatekeeper.Hubs
 			JsonConvert.PopulateObject(current.ToString(), attendee);
 
 			var removed = new List<string>();
-			removed.AddRange(attendee.RemovedWristbands);
+			removed.AddRange(attendee.RemovedWristbands != null
+				? attendee.RemovedWristbands
+				: new string[] {});
 			attendee.RemovedWristbands = removed
 				.Except(new[] { attendee.Wristband })
 				.Distinct()

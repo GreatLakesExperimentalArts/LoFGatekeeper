@@ -14,12 +14,10 @@ import {
 import * as _ from 'lodash';
 import StringSimilarity from 'string-similarity';
 
-let connection: signalR.HubConnection;
-
 import {
   Attendee as AttendeeIntl,
   AttendeesState as AttendeesStateIntl,
-  AttendeeMap,
+  AttendeeMap as AttendeeMapIntl,
   AttendeesValueState,
   AddAttendeeProps,
   AttendeesState
@@ -29,9 +27,12 @@ import { StatefulTable, StatefulRow } from './table';
 import AttendeeSearch from '../../components/Attendees';
 
 export type Attendee = AttendeeIntl;
-export type AttendeeState = AttendeesStateIntl;
+export type AttendeesState = AttendeesStateIntl;
+export type AttendeeMap = AttendeeMapIntl;
 
-export const bindConnectionToStore = (store: Store<ApplicationState>, callback: Function) => {
+let connection: signalR.HubConnection;
+
+export const bindSignalRHub = (store: Store<ApplicationState>) => {
   connection = new signalR.HubConnectionBuilder()
     .withUrl('/hubs/attendee')
     .build();
@@ -51,134 +52,143 @@ export const bindConnectionToStore = (store: Store<ApplicationState>, callback: 
     store.dispatch({ type: 'DELETE_ATTENDEE', dataid: data.id });
   });
 
-  connection.start();
+  connection.start().then(() => {
+    let fetchTask = fetch(`api/Attendees`)
+    .then(response => response.json() as Promise<Attendee[]>)
+    .then(data => {
+      store.dispatch({ type: 'RECEIVE_ATTENDEES', attendees: data });
+    });
+
+    addTask(fetchTask);
+    store.dispatch({ type: 'REQUEST_ATTENDEES' });
+  });
+
+  return store;
 };
 
 export const actionCreators = {
-  requestAttendees: (): AppThunkAction<KnownAction> => (dispatch, getState) => {
-    let fetchTask = fetch(`api/Attendees`)
-      .then(response => response.json() as Promise<Attendee[]>)
-      .then(data => {
-          dispatch({ type: 'RECEIVE_ATTENDEES', attendees: data });
-      });
-
-    addTask(fetchTask);
-    dispatch({ type: 'REQUEST_ATTENDEES' });
-  },
   updateAttendee: (
       attendee: Pick<Attendee, any>,
       sendServerUpdate: boolean = false,
       parents?: string[]
-    ):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      if ('id' in attendee === false) {
+        return;
+      }
 
-    if ('id' in attendee === false) {
-      return;
-    }
+      const state = getState().attendees as AttendeesState;
+      let { attendees } = state;
 
-    const state = getState().attendees as AttendeesState;
-    let { attendees } = state;
+      attendee.parents = _.map(parents || attendee.parents, (parentValue) => {
+          var val = parentValue.replace(/^@/gi, '');
+          if (!(/[0-9]{4}/gi).test(val)) {
+            return;
+          }
 
-    attendee.parents = _.map(parents || attendee.parents, (parentValue) => {
-        var val = parentValue.replace(/^@/gi, '');
-        if (!(/[0-9]{4}/gi).test(val)) {
-          return;
-        }
+          var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
+          return parent.id;
+        }).filter(p => p !== undefined) as string[];
 
-        var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
-        return parent.id;
-      }).filter(p => p !== undefined) as string[];
+      if (sendServerUpdate) {
+        let { row, ...update } = attendee;
+        addTask(connection.send('Update', update));
+      }
 
-    if (sendServerUpdate) {
-      let { row, ...update } = attendee;
-      addTask(connection.send('Update', update));
-    }
-
-    dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
-  },
-  deleteAttendee: (id: string):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
-
-    addTask(
-      connection.send('Delete', { Id: id })
-    );
-  },
+      dispatch({ type: 'RECEIVE_ATTENDEE_UPDATE', attendee });
+    },
+  deleteAttendee: (id: string): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      addTask(
+        connection.send('Delete', { Id: id })
+      );
+    },
   AddAttendee: (
       attendee: Attendee,
       reason: string,
       parents?: string[]
-    ):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      if (parents) {
+        const state = getState().attendees as AttendeesState;
+        let { attendees } = state;
 
-    if (parents) {
-      const state = getState().attendees as AttendeesState;
-      let { attendees } = state;
+        parents = _.map(parents, (parentValue) => {
+          var val = parentValue.replace(/^@/gi, '');
+          if (!(/[0-9]{4}/gi).test(val)) {
+            return;
+          }
 
-      parents = _.map(parents, (parentValue) => {
-        var val = parentValue.replace(/^@/gi, '');
-        if (!(/[0-9]{4}/gi).test(val)) {
-          return;
-        }
+          var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
+          return parent.id;
+        }).filter(p => p !== undefined) as string[];
+      }
 
-        var parent = _.find(attendees, (a) => a.wristband === val) as Attendee;
-        return parent.id;
-      }).filter(p => p !== undefined) as string[];
-    }
+      let { dob, name, wristband } = attendee;
 
-    let { dob, name, wristband } = attendee;
-
-    addTask(
-      connection.send('Add', { attendee: { dob, name, wristband }, reason, parents: parents })
-    );
-  },
+      addTask(
+        connection.send('Add', { attendee: { dob, name, wristband }, reason, parents: parents })
+      );
+    },
   checkIfWristbandUsed: (
       wristband: string | null,
       reference: string | Moment | null,
       callback: (used: boolean) => void
-    ):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      wristband = wristband || '';
+      dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, reference, callback });
+    },
+  getWristbandFromId: (id: string): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      const state = getState().attendees as AttendeesState;
+      let { attendees } = state;
+      return (_.find(attendees, (a) => a.id === id) || { wristband: null }).wristband;
+    },
+  getDisplayNameFromId: (id: string): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      const state = getState().attendees as AttendeesState;
+      let { attendees } = state;
 
-    wristband = wristband || '';
-    dispatch({ type: 'CHECK_IF_WRISTBAND_USED', wristband, reference, callback });
-  },
-  getWristbandFromId: (id: string):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
+      let attendee: Attendee = _.find(attendees, (a) => a.id === id) as Attendee;
+      if (!attendee) { return; }
 
-    const state = getState().attendees as AttendeesState;
-    let { attendees } = state;
-    return (_.find(attendees, (a) => a.id === id) || { wristband: null }).wristband;
-  },
+      let burnerName = attendee.burnerName;
+
+      return { ...attendee.name, burnerName };
+    },
   searchForParents: (
       lastName: string,
       partial: string | null,
       remove: string[],
       callback: (results: Attendee[]) => void
-    ):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
-
-    dispatch({ type: 'SEARCH_FOR_PARENTS', lastName, partial, remove, callback });
-  },
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      dispatch({ type: 'SEARCH_FOR_PARENTS', lastName, partial, remove, callback });
+    },
   getNextUnusedWristband: (
       reference: number | Moment,
       callback: (next: string) => void
-    ):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
-
-    dispatch({ type: 'GET_NEXT_UNUSED_WRISTBAND', callback, reference });
-  },
-  updateSearch: (search: string, categoryFilter: string): AppThunkAction<KnownAction> => (dispatch, getState) => {
-    dispatch({ type: 'UPDATE_SEARCH', search, categoryFilter });
-  },
-  setTableRef: (table: StatefulTable<{}>):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
-
-    dispatch({ type: 'SET_TABLE_REF', table });
-  },
-  setRowState: (dataid: string, state: Pick<StatefulRow, any>):
-    AppThunkAction<KnownAction> => (dispatch, getState) => {
-
-    dispatch({ type: 'SET_ROW_STATE', dataid, state });
-  }
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      dispatch({ type: 'GET_NEXT_UNUSED_WRISTBAND', callback, reference });
+    },
+  updateSearch: (
+      search: string,
+      categoryFilter: string,
+      force?: boolean
+    ): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      dispatch({ type: 'UPDATE_SEARCH', search, categoryFilter, force: force || false });
+    },
+  setTableRef: (table: StatefulTable<{}>): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      dispatch({ type: 'SET_TABLE_REF', table });
+    },
+  setRowState: (dataid: string, state: Pick<StatefulRow, any>): AppThunkAction<KnownAction> =>
+    (dispatch, getState) => {
+      dispatch({ type: 'SET_ROW_STATE', dataid, state });
+    }
 };
 
 const unloadedState: AttendeesValueState = {
@@ -188,16 +198,12 @@ const unloadedState: AttendeesValueState = {
   searchFilter: ''
 };
 
-const WristbandSegments = [
-  { match: (n: Pick<Attendee, any>) => n.age >= 21,               start:    1, endAt: 2400 },
-  { match: (n: Pick<Attendee, any>) => n.age < 21 && n.age >= 13, start: 2401, endAt: 2550 },
-  { match: (n: Pick<Attendee, any>) => n.age < 13 && n.age > 0,   start: 2551, endAt: 2800 }
-];
+const MatchEval = (n: Pick<Attendee, any>, s: string) => eval(s);
 
-const StandardSort = (attendees: ArrayLike<Attendee>) => {
+const StandardSort = (attendees: ArrayLike<Attendee>, defaultPermittedDate: Moment) => {
   return _.sortBy(attendees, [
     (val: Attendee) => val.wristband !== '' && val.wristband,
-    (val: Attendee) => (val.department || '' !== '') && val.department,
+    (val: Attendee) => (val.permittedEntryDate !== null && val.permittedEntryDate) || defaultPermittedDate,
     (val: Attendee) => (val.name.lastName || '').toLowerCase(),
     (val: Attendee) => (val.name.firstName || '').toLowerCase()
   ]);
@@ -214,6 +220,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
     case 'RECEIVE_ATTENDEES':
       {
+        console.log(state);
         let attendees: AttendeeMap = {};
         _.each(action.attendees, (item) => {
           attendees[item.id] = AddAttendeeProps(state, item);
@@ -237,7 +244,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           };
         }
 
-        attendees = StandardSort(attendees);
+        attendees = StandardSort(attendees, state.settings.eventDefaultEntryDate);
 
         if ((action.search || '').length === 0 && (action.categoryFilter || '') === '') {
           return {
@@ -305,7 +312,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
           result = [...state.result, state.attendees[action.attendee.id]];
         }
 
-        return { ...state, result: StandardSort(result) };
+        return { ...state, result: StandardSort(result, state.settings.eventDefaultEntryDate) };
       }
 
     case 'ADD_ATTENDEE':
@@ -367,7 +374,7 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
             attendee = { age: moment().startOf('day').diff(action.reference, 'years', true) };
           }
 
-          let segment = WristbandSegments[_.findIndex(WristbandSegments, seg => seg.match(attendee))];
+          let segment = _.find(state.wristbandSegments, (n) => MatchEval(attendee, n.match));
           let wi = parseInt(action.wristband);
 
           if (wi < segment.start || wi > segment.endAt) {
@@ -392,10 +399,9 @@ export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState
 
       action.callback((() => {
         const comparer = { age: moment().startOf('day').diff(dob, 'years', true) };
+        var popSegment = _.find(state.wristbandSegments, (n) => MatchEval(comparer, n.match));
 
-        var popSegment = WristbandSegments[_.findIndex(WristbandSegments, seg => seg.match(comparer))];
-
-        let subset = _.filter(_.values(state.attendees), val => val !== null && popSegment.match(val));
+        let subset = _.filter(_.values(state.attendees), val => val !== null && MatchEval(val, popSegment.match));
 
         let wristbands = _.flatten<number>(_.map(subset, (val: Attendee) => {
           let ret = val.removedWristbands || [];

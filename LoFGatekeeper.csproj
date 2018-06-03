@@ -3,6 +3,7 @@
     <AssemblyName>LoFGatekeeper</AssemblyName>
     <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
     <TargetFramework>netcoreapp2.1</TargetFramework>
+	<LangVersion>latest</LangVersion>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <DefaultItemExcludes>$(DefaultItemExcludes);Interfaces\**\*.*;Importers\**\*.*;*docker*;*-lock.json;.*ignore</DefaultItemExcludes>

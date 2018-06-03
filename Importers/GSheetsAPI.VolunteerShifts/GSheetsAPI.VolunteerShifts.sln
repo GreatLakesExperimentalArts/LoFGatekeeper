@@ -1,0 +1,23 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2017
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GSheetsAPI.VolunteerShifts", "GSheetsAPI.VolunteerShifts.csproj", "{D9366A30-2350-46B7-AA0F-4406D260BB99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoFGatekeeper.Interfaces", "..\..\Interfaces\LoFGatekeeper.Interfaces.csproj", "{5F4BE8F3-9449-46F1-934A-4E8645868370}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D9366A30-2350-46B7-AA0F-4406D260BB99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9366A30-2350-46B7-AA0F-4406D260BB99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9366A30-2350-46B7-AA0F-4406D260BB99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9366A30-2350-46B7-AA0F-4406D260BB99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F4BE8F3-9449-46F1-934A-4E8645868370}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F4BE8F3-9449-46F1-934A-4E8645868370}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F4BE8F3-9449-46F1-934A-4E8645868370}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F4BE8F3-9449-46F1-934A-4E8645868370}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
