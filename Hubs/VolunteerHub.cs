@@ -6,8 +6,9 @@ namespace LoFGatekeeper.Hubs
 	using Microsoft.AspNetCore.SignalR;
 	using LiteDB;
 	using Serilog;
+    using Newtonsoft.Json;
 
-	internal class VolunteerHubContext
+    internal class VolunteerHubContext
 	{
 		public LiteDatabase Database { get; set; }
 
@@ -40,6 +41,7 @@ namespace LoFGatekeeper.Hubs
 			await Clients.Caller.SendAsync("ActiveVolunteers",
 				Collection.Find(item => item.Out == null)
 					.Select(item => new[] {
+						item.Id.ToString(),
 						item.VolunteerId,
 						item.In.ToString("s")
 					})
@@ -60,8 +62,12 @@ namespace LoFGatekeeper.Hubs
 
 		public async Task EndShiftFor(VolunteerTimeclockEntry request)
 		{
-			var found = Collection.FindOne(a => a.Id == request.Id && a.Out == null);
+			var found = Collection.FindOne(a => a.Id == request.Id);
+
+			Logger.Information(JsonConvert.SerializeObject(Collection.FindAll()));
+
 			if (found == null) {
+				Logger.Information($"Could not end shift {request.Id}");
 				return;
 			}
 

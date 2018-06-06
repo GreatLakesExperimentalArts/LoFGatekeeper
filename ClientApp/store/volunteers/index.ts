@@ -2,10 +2,11 @@ import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator, Store } from 'redux';
 import { AppThunkAction, ApplicationState } from '..';
 import { Attendee, actionCreators as attendeeActions } from '../attendees';
-import { Duration, DateTime } from 'luxon';
 import * as signalR from '@aspnet/signalr';
 import * as _ from 'lodash';
-import { Moment } from 'moment';
+
+// import { Duration, DateTime } from 'luxon';
+import moment, { Moment } from 'moment';
 
 export interface Volunteer extends Attendee {
   // nothing here yet
@@ -14,15 +15,15 @@ export interface Volunteer extends Attendee {
 export interface VolunteerTimeclockEntry {
   volunteerId: string;
   name?: string;
-  in: DateTime;
-  out?: DateTime;
+  in: Moment;
+  out?: Moment;
 }
 
 export interface ScheduledVolunteerShift {
-  id: AAGUID;
+  id: string;
   volunteerId: string;
-  begins: DateTime;
-  ends: DateTime;
+  begins: Moment;
+  ends: Moment;
   task: string;
 }
 
@@ -30,15 +31,11 @@ interface RequestShiftsAction {
   type: 'REQUEST_SHIFTS';
 }
 
-interface ReceiveShiftsAction {
-  type: 'RECEIVE_SHIFTS';
-  received: Array<any>;
-  filter: Moment;
-}
-
 interface FilterShiftsAction {
   type: 'FILTER_SHIFTS';
+  received?: Array<any>;
   filter: Moment;
+  callback?: () => void;
 }
 
 interface ReceiveActiveAction {
@@ -48,16 +45,15 @@ interface ReceiveActiveAction {
 
 interface BeginShiftAction {
   type: 'BEGIN_SHIFT';
-  row: VolunteerTimeclockEntry;
+  entry: VolunteerTimeclockEntry;
 }
 
 interface EndShiftAction {
   type: 'END_SHIFT';
-  row: VolunteerTimeclockEntry;
+  volunteerId: string;
 }
 
 export type KnownAction =
-  ReceiveShiftsAction |
   RequestShiftsAction |
   FilterShiftsAction |
   ReceiveActiveAction |
@@ -68,21 +64,21 @@ export interface VolunteersState {
   active: VolunteerTimeclockEntry[];
   displayed: ScheduledVolunteerShift[];
   scheduled: ScheduledVolunteerShift[];
-  isLoading: boolean;
+  hasLoaded: boolean;
 }
 
 const unloadedState: VolunteersState = {
   active: [],
   displayed: [],
   scheduled: [],
-  isLoading: false
+  hasLoaded: false
 };
 
 export const reducer: Reducer<VolunteersState> =
   (state: VolunteersState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
-      case 'RECEIVE_SHIFTS':
+      case 'FILTER_SHIFTS':
       {
         let typeOrder = [
           'Lead On Duty',
@@ -92,12 +88,12 @@ export const reducer: Reducer<VolunteersState> =
           'Volunteer Shift'
         ];
 
-        let scheduled = _.sortBy(_.map(action.received, (item: any) => {
+        let scheduled = _.sortBy(_.map(action.received || state.scheduled, (item: any) => {
           return {
             id: item.id,
             volunteerId: item.volunteerId,
-            begins: DateTime.fromISO(item.begins),
-            ends: DateTime.fromISO(item.ends),
+            begins: moment(item.begins),
+            ends: moment(item.ends),
             task: item.task
           } as ScheduledVolunteerShift;
         }), [
@@ -105,17 +101,36 @@ export const reducer: Reducer<VolunteersState> =
           (n: ScheduledVolunteerShift) => _.indexOf(typeOrder, n.task)
         ]);
 
-        let filter = DateTime.fromISO(action.filter.toISOString());
-        let displayed = _.filter(scheduled, row => row.begins > filter && row.begins <= filter.plus({ days: 1 }));
+        var filter = moment(action.filter.startOf('day'));
 
-        return { ...state, scheduled, displayed, isLoading: false };
-      }
+        if (!_.find(scheduled, o => o.id === 'custom')) {
+          var extra = {
+            id: 'custom',
+            volunteerId: '10855-a25f573b1fd4c1eaa2229a98933ad47e',
+            begins: moment().local().startOf('day').add(0, 'hours'),
+            ends: moment().local().startOf('day').add(1, 'days'),
+            task: 'Lead On Duty'
+          };
 
-      case 'FILTER_SHIFTS':
-      {
-        let filter = DateTime.fromISO(action.filter.toISOString());
-        let displayed = _.filter(state.scheduled, row => row.begins > filter && row.begins <= filter.plus({ days: 1 }));
-        return { ...state, displayed };
+          scheduled = [ extra, ...scheduled ];
+        }
+
+        let displayed = _.filter(scheduled, row => {
+          var before = Math.abs(
+            moment.duration(
+              filter.startOf('day').diff(row.begins)
+            ).asDays()
+          );
+          var after = Math.abs(
+            moment.duration(
+              filter.endOf('day').diff(row.begins)
+            ).asDays()
+          );
+          return before <= 1 && after < 1;
+        });
+
+        if (action.callback) { action.callback(); }
+        return { ...state, scheduled, displayed, hasLoaded: true };
       }
 
       case 'REQUEST_SHIFTS':
@@ -127,8 +142,9 @@ export const reducer: Reducer<VolunteersState> =
         {
           let active = _.map(action.received, (item: string[]) => {
             return {
-              volunteerId: item[0],
-              in: DateTime.fromISO(item[1])
+              id: item[0],
+              volunteerId: item[1],
+              in: moment(item[2])
             } as VolunteerTimeclockEntry;
           });
           return { ...state, active };
@@ -136,14 +152,14 @@ export const reducer: Reducer<VolunteersState> =
 
       case 'BEGIN_SHIFT':
         {
-          let active = _.concat(state.active, [action.row]);
+          let active = _.concat(state.active, [action.entry]);
           return { ...state, active };
         }
 
       case 'END_SHIFT':
         {
           let active = _.filter(state.active,
-            (v) => v.volunteerId === action.row.volunteerId
+            (v) => v.volunteerId !== action.volunteerId
           );
           return { ...state, active };
         }
@@ -161,12 +177,29 @@ export const bindSignalRHub = (store: Store<ApplicationState>) => {
     .withUrl('/hubs/volunteer')
     .build();
 
+  connection.on('VolunteerStartShift', data => {
+    store.dispatch({ type: 'BEGIN_SHIFT', entry: data });
+  });
+
+  connection.on('VolunteerEndedShift', data => {
+    store.dispatch({ type: 'END_SHIFT', volunteerId: data.volunteerId });
+  });
+
   connection.on('ActiveVolunteers', data => {
     store.dispatch({ type: 'RECEIVE_ACTIVE', received: data });
   });
 
   connection.start().then(() => {
     connection.send('GetActive');
+
+    let fetchTask = fetch(`api/Volunteer`)
+    .then(response => response.json() as Promise<ScheduledVolunteerShift[]>)
+    .then(data => {
+      store.dispatch({ type: 'FILTER_SHIFTS', received: data, filter: moment() });
+    });
+
+    addTask(fetchTask);
+    store.dispatch({ type: 'REQUEST_SHIFTS' });
   });
 
   return store;
@@ -174,23 +207,11 @@ export const bindSignalRHub = (store: Store<ApplicationState>) => {
 
 export const actionCreators = {
   loadScheduledShifts: (
-    filter: Moment
+    filter?: Moment,
+    callback?: () => void
   ): AppThunkAction<KnownAction> =>
   (dispatch, getState) => {
-      let { attendees, volunteers, routing } = getState();
-
-      if (volunteers.scheduled.length === 0) {
-        let fetchTask = fetch(`api/Volunteer`)
-          .then(response => response.json() as Promise<ScheduledVolunteerShift[]>)
-          .then(data => {
-            dispatch({ type: 'RECEIVE_SHIFTS', received: data, filter });
-          });
-
-        addTask(fetchTask);
-        dispatch({ type: 'REQUEST_SHIFTS' });
-      } else {
-        dispatch({ type: 'FILTER_SHIFTS', filter });
-      }
+      dispatch({ type: 'FILTER_SHIFTS', filter: filter || moment(), callback });
     },
   searchByWristband: (
       wristband: string,
@@ -210,20 +231,24 @@ export const actionCreators = {
     (dispatch, getState) => {
       let { attendees, volunteers, routing } = getState();
 
-      var row: VolunteerTimeclockEntry = { volunteerId, in: DateTime.utc() };
-      connection.send('BeginShiftFor', row)
-        .then(() => dispatch({ type: 'BEGIN_SHIFT', row }));
+      var entry: VolunteerTimeclockEntry = { volunteerId, in: moment() };
+      connection.send('BeginShiftFor', entry);
     },
   endShift: (
       volunteerId: string
     ): AppThunkAction<KnownAction> =>
     (dispatch, getState) => {
       let { attendees, volunteers, routing } = getState();
-      let row: VolunteerTimeclockEntry = _.find(volunteers.active,
-        (v) => v.volunteerId === volunteerId
-      ) || { volunteerId, in: DateTime.utc() };
+      let row: VolunteerTimeclockEntry | undefined =
+        _.find(volunteers.active,
+          (v) => v.volunteerId === volunteerId
+        );
 
-      connection.send('EndShiftFor', { volunteerId })
-        .then(() => dispatch({ type: 'END_SHIFT', row }));
+      if (!row) {
+        dispatch({ type: 'END_SHIFT', volunteerId });
+        return;
+      }
+
+      connection.send('EndShiftFor', row);
     }
 };

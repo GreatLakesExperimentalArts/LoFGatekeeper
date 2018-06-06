@@ -22,7 +22,7 @@ const SystemLayout = (props: Props) => {
       >
         <Menu.Item key="/"><NavLink to="/">Wristband Entry</NavLink></Menu.Item>
         <Menu.Item key="/volunteers"><NavLink to="/volunteers">Volunteers</NavLink></Menu.Item>
-        <Menu.Item key="/indicents"><NavLink to="/indicents">Incident Log</NavLink></Menu.Item>
+        <Menu.Item key="/incidentLog"><NavLink to="/incidentLog">Incident Log</NavLink></Menu.Item>
       </Menu>
     </AntHeader>
   );

@@ -5,7 +5,6 @@ import InputMask from 'react-input-mask';
 import { ApplicationState } from 'store';
 import { AttendeeMap } from 'store/attendees';
 import { Volunteer, VolunteerTimeclockEntry, ScheduledVolunteerShift, actionCreators } from 'store/volunteers';
-import { DateTime } from 'luxon';
 import { Table, Row, Col, Form, Input, Button, Icon, DatePicker } from 'antd';
 import * as _ from 'lodash';
 import moment, { Moment } from 'moment';
@@ -18,7 +17,7 @@ const InputGroup = Input.Group;
 
 interface Props {
   active: VolunteerTimeclockEntry[];
-  scheduled: ScheduledVolunteerShift[];
+  displayed: ScheduledVolunteerShift[];
   isLoading: boolean;
 
   searchByWristband: (
@@ -38,13 +37,12 @@ interface State {
 }
 
 class VolunteersComponent extends Component<Props, State> {
+  state = {
+    scheduleDisplayedFor: moment()
+  } as State;
+
   componentWillMount() {
-    this.setState({
-      modal: null,
-      timeclockValue: '',
-      found: null,
-      scheduleDisplayedFor: moment(DateTime.local().startOf('day'))
-    }, () => { this.props.loadScheduledShifts(this.state.scheduleDisplayedFor); });
+    this.props.loadScheduledShifts(this.state.scheduleDisplayedFor);
   }
 
   render() {
@@ -71,13 +69,21 @@ class VolunteersComponent extends Component<Props, State> {
         title: 'Begins',
         key: 'begins',
         dataIndex: 'begins',
-        render: (text: string, row: ScheduledVolunteerShift) => row.begins.toFormat('ccc dd @ HH:mm')
+        render: (text: string, row: ScheduledVolunteerShift) =>
+          (typeof row.begins === 'string'
+            ? moment(row.begins)
+            : row.begins
+          ).format('ddd DD, HH:mm')
       },
       {
         title: 'Ends',
         key: 'ends',
         dataIndex: 'ends',
-        render: (text: string, row: ScheduledVolunteerShift) => row.ends.toFormat('ccc dd @ HH:mm')
+        render: (text: string, row: ScheduledVolunteerShift) =>
+          (typeof row.ends === 'string'
+            ? moment(row.ends)
+            : row.ends
+          ).format('ddd DD, HH:mm')
       },
       {
         title: 'Scheduled',
@@ -92,8 +98,8 @@ class VolunteersComponent extends Component<Props, State> {
             <Col span={24}>
               <h1>
                 <Icon type="clock-circle-o" />&nbsp;
-                {DateTime.local().toFormat('ccc dd MMM').toUpperCase()} @&nbsp;
-                <TimeSince value={DateTime.local().startOf('day').toUTC()} />
+                <TimeSince value={moment().local().startOf('day').utc()} />,&nbsp;
+                {moment().local().format('ddd DD MMM').toUpperCase()}
               </h1>
             </Col>
           </Row>
@@ -111,13 +117,27 @@ class VolunteersComponent extends Component<Props, State> {
                   formatChars={{ '9': '[0-9]' }}
                   onChange={this.onChanged}
                   onBlur={this.onBlur}
+                  onFocus={this.onFocus}
                   value={this.state.timeclockValue}
+                  autoComplete={'off'}
                 />
-                <Button type="primary" onClick={this.submitShiftChange}>Begin / End Shift</Button>
-                <span style={{ paddingLeft: '10px', paddingTop: '6px', display: (this.state.found !== null) ? 'inline-block' : 'none' }}>
-                  <span style={{ color: '#00CC00', fontWeight: 'bold' }}>found</span>:&nbsp;
-                  <AttendeeName value={this.state.found ? this.state.found.id : null} />
+                <span
+                  className={'ant-input ant-input-no-hover'}
+                  style={{
+                    paddingLeft: '10px',
+                    paddingRight: '10px',
+                    paddingTop: '6px',
+                    width: '300px',
+                    display: 'inline-block'
+                  }}
+                >
+                  &nbsp;
+                  {(this.state.found != null)
+                    ? (<AttendeeName value={this.state.found ? this.state.found.id : null} />)
+                    : ('')
+                  }
                 </span>
+                <Button type="primary" onClick={this.submitShiftChange}>Begin / End Shift</Button>
               </InputGroup>
               <Table
                 dataSource={this.props.active}
@@ -132,10 +152,11 @@ class VolunteersComponent extends Component<Props, State> {
             <Col span={16}>
               <h2>Scheduled for
                 <DatePicker
-                  value={moment(this.state.scheduleDisplayedFor)}
+                  value={this.state.scheduleDisplayedFor}
                   onChange={this.onScheduleDisplayChanged}
                   allowClear={false}
                   format={'ddd DD MMM'}
+                  id={'displayedScheduleDatePicker'}
                 />
               </h2>
               <Table
@@ -143,7 +164,7 @@ class VolunteersComponent extends Component<Props, State> {
                 columns={scheduleColumns}
                 style={{ backgroundColor: '#FFF', marginTop: '10px' }}
                 size={'middle'}
-                rowKey={(record: {}) => (record as ScheduledVolunteerShift).Id}
+                rowKey={(record: {}) => (record as ScheduledVolunteerShift).id}
                 loading={this.props.isLoading}
                 locale={{ emptyText: 'No Schedule Loaded' }}
                 pagination={false}
@@ -154,14 +175,14 @@ class VolunteersComponent extends Component<Props, State> {
     );
   }
 
+  private onFocus: (event: React.FocusEvent<HTMLInputElement>) => void =
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      this.setState({ found: null, timeclockValue: '' });
+    }
+
   private onBlur: (event: React.FocusEvent<HTMLInputElement>) => void =
     (event: React.FocusEvent<HTMLInputElement>) => {
-      /* var currentRow = $(event.target).closest('tr').get(0);
-      var relatedRow = $(event.relatedTarget).closest('tr').get(0);
-
-      if (currentRow !== relatedRow || this.props.value === '') {
-        this.setState({ timeclockValue: '' });
-      } */
+      // noop
     }
 
   private onScheduleDisplayChanged: (date: Moment, dateString: string) => void =
@@ -194,17 +215,22 @@ class VolunteersComponent extends Component<Props, State> {
     (event: React.MouseEvent<HTMLButtonElement>) => {
       if (this.state.found) {
         let { id } = this.state.found;
-        var current = _.filter(this.props.active, (vol) => vol.volunteerId === id);
-        if (current.length === 0) {
+        var current = _.find(this.props.active, (vol) => vol.volunteerId === id);
+        if (current == null) {
           this.props.beginShift(id);
+          this.setState({ found: null, timeclockValue: '' });
           return;
         }
         this.props.endShift(id);
+        this.setState({ found: null, timeclockValue: '' });
       }
     }
 }
 
 export default connect(
-  (state: ApplicationState) => state.volunteers,
+  (state: ApplicationState, ownProps: Props | undefined) => {
+    const { volunteers } = state;
+    return { ...volunteers, ...ownProps };
+  },
   actionCreators
 )(VolunteersComponent) as any as typeof VolunteersComponent;

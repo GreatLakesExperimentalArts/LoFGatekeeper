@@ -1,22 +1,26 @@
 import * as React from 'react';
+import * as _ from 'lodash';
 import { Component } from 'react';
 import { connect } from 'react-redux';
 import { ApplicationState, AppThunkAction, actionCreators } from 'store';
 import { Attendee } from 'store/attendees';
 import { Duration, DateTime } from 'luxon';
 
-export interface Props {
+export interface Props extends React.ClassAttributes<HTMLSpanElement> {
   value: string;
-  attendee: Attendee | null;
+  attendee?: Attendee;
 }
 
 class AttendeeName extends Component<Props, {}> {
   public render() {
-    if (this.props.attendee) {
-      let { name, burnerName } = this.props.attendee;
+    let { attendee, value, ...props } = this.props;
+    props = _.pickBy(props, v => !_.isFunction(v));
+
+    if (attendee) {
+      let { name, burnerName } = attendee;
 
       return (
-        <span>
+        <span {...props}>
           {name.nickName || name.firstName}
           {burnerName || '' !== '' ? ` "${burnerName}" ` : ' '}
           {name.lastName}
@@ -24,7 +28,7 @@ class AttendeeName extends Component<Props, {}> {
       );
     }
 
-    return <span style={{ color: '#CCC' }}>Loading</span>;
+    return <span {...(_.merge(props, { style: { color: '#CCC' }}))}>No Info</span>;
   }
 }
 
@@ -32,9 +36,9 @@ export default connect(
   (state: ApplicationState, ownProps: Props) => {
     if (state.attendees.attendees) {
       let attendee = state.attendees.attendees[ownProps.value] || null;
-      return { ...state, attendee: attendee };
+      return { ...ownProps, attendee: attendee };
     }
-    return { ...state };
+    return { ...ownProps };
   },
   actionCreators
 )(AttendeeName) as any as typeof AttendeeName;

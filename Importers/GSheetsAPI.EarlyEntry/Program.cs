@@ -15,8 +15,11 @@
 	using Google.Apis.Sheets.v4.Data;
 	using Google.Apis.Services;
 	using Google.Apis.Util.Store;
+    using BinaryFog.NameParser;
 
-	class Program
+	using Data = Google.Apis.Sheets.v4.Data;
+
+    class Program
 	{
 		public class Result
 		{
@@ -25,15 +28,13 @@
 			public string LastName { get; set; }
 			public DateTime? DOB { get; set; }
 			public DateTime EntryDate { get; set; }
-			public string Camp { get; set;}
-
+			public string Camp { get; set; }
 			public string Department { get; set; }
 			public string Status { get; set; }
-			public Attendee Attendee { get; set; }
 			public string EmailAddress { get; set; }
 		}
 
-		static string[] Scopes = { SheetsService.Scope.SpreadsheetsReadonly };
+		static string[] Scopes = { SheetsService.Scope.Spreadsheets };
 
 		private static void Main(string[] args)
 		{
@@ -56,87 +57,67 @@
 				ApplicationName = "LoFGatekeeper-Import",
 			});
 
-			List<Hashtable> items = new List<Hashtable>();
+			String spreadsheetId = "1sOtWKPPJKgJo4m6RSg7V5kResfP00eph-cUBuKCrPf8";
+
+			var sheet = service.Spreadsheets
+				.Values
+				.Get(spreadsheetId, "Early Entry Master List!A2:I")
+				.Execute();
+
+			List<Attendee> items = new List<Attendee>();
 
 			{
-				String spreadsheetId = "1sOtWKPPJKgJo4m6RSg7V5kResfP00eph-cUBuKCrPf8";
-
-				var departments = service.Spreadsheets.Values
-					.Get(spreadsheetId, "Department Early Entry!A2:A")
-					.Execute()
-					.Values
-					.Select(RowData => (string) RowData[0])
-					.ToList();
-
-				var values = service.Spreadsheets
-					.Values
-					.Get(spreadsheetId, "Department Early Entry!C2:H")
-					.Execute()
-					.Values;
-
-				foreach (var item in values) {
-					var set = new ArrayList(6);
-					set.AddRange(item.ToArray());
-
-					try
-					{
-						var department = departments[values.IndexOf(item)];
-						var entryDate = $"{set[2]}";
-						var firstName = $"{set[0]}";
-						var lastName = $"{set[1]}";
-
-						var registrationId = "";
-						if (set.Count >= 4) {
-							registrationId = $"{set[3]}";
-						}
-
-						var dob = "";
-						if (set.Count >= 5) {
-							dob = $"{set[4]}";
-						}
-
-						var email = "";
-						if (set.Count == 6) {
-							email = $"{set[5]}";
-						}
-
-						items.Add(new Hashtable {
-							{ "Camp", "" },
-							{ "Department", department },
-							{ "Registration Number", registrationId },
-							{ "Entry Date Requested", entryDate },
-							{ "First Name", firstName },
-							{ "Last Name", lastName },
-							{ "DOB", dob },
-							{ "EmailAddress", email }
-						});
+				foreach (var raw in sheet.Values) {
+					var item = new List<string>(raw.Cast<string>());
+					if (item.Count < 9) {
+						item.AddRange(
+							Enumerable.Range(raw.Count, 9 - raw.Count).Select(n => "")
+						);
 					}
-					catch {
-						Console.WriteLine(JsonConvert.SerializeObject(set));
-						throw;
+
+					var name = $"{item[2]} {item[3]}"
+						.Trim()
+						.ToLowerInvariant();
+					name = Regex.Replace(name, @"\s", " ");
+					name = Regex.Replace(name, @"(( )\?|\?( ))", @"$2""$3");
+					name = Regex.Replace(name, @"\?", "'");
+
+					DateTime dob;
+					if (!DateTime.TryParse(item[4], out dob)) {
+						dob = DateTime.MinValue;
 					}
-				}
-			}
 
-			{
-				String spreadsheetId = "1sOtWKPPJKgJo4m6RSg7V5kResfP00eph-cUBuKCrPf8";
+					DateTime entry;
+					if (!DateTime.TryParse(item[7], out entry)) {
+						entry = new DateTime(2018, 06, 13);
+					}
 
-				var values = service.Spreadsheets
-					.Values
-					.Get(spreadsheetId, "Theme Camp Early Entry!A2:F")
-					.Execute()
-					.Values;
+					var parsedName = BinaryFog.NameParser.FullNameParser.Parse(name)
+						.Results.OrderByDescending(r => r.Score)
+						.FirstOrDefault();
 
-				foreach (var item in values) {
-					if (item.Count >= 5) {
-						items.Add(new Hashtable {
-							{ "Camp", (string) item[1] },
-							{ "Department", "" },
-							{ "ComboName", Regex.Replace((string) item[2], @"\s", " ").Trim() },
-							{ "DOB", (string) item[3] },
-							{ "Entry Date Requested", (string) item[0] },
-							{ "EmailAddress", (string) item[4] },
-							{ "Registration Number", item.Count == 6 ? (string) item[5] : null }
+					if (parsedName == null) {
+						parsedName = new ParsedFullName {
+							LastName = name
+						};
+					}
+
+					Attendee attendee;
+					if (item[8] != "TRUE") {
+						items.Add(attendee = new Attendee {
+							Department = item[0],
+							ThemeCamp = item[1],
+							Name = parsedName,
+							DOB = dob,
+							PermittedEntryDate = entry,
+							EmailAddress = Regex
+								.Replace(item[6], @"\s", "")
+								.Trim()
+								.ToLowerInvariant(),
+							Id = Regex
+								.Replace(item[5], @"\s", "")
+								.Trim(),
+							Index = sheet.Values.IndexOf(raw)
 						});
 					}
 				}
@@ -151,148 +132,93 @@
 				var collection = db.GetCollection<Attendee>("attendees");
 				var results = new List<Result>();
 
-				foreach (var item in items) {
-					Attendee attendee = null;
+				var all = collection.FindAll()
+					.Where(a => a.Name != null)
+					.ToList();
 
-					if (item.ContainsKey("Registration Number") && !string.IsNullOrEmpty((string) item["Registration Number"])) {
-						attendee = collection.FindOne(a => a.Id == (string) item["Registration Number"]);
+				Data.ValueRange requestBody = new Data.ValueRange();
+				requestBody.MajorDimension = "COLUMNS";
 
-					} else if (item.ContainsKey("ComboName")) {
-						var nameParts = Regex.Split($"{item["ComboName"]}".ToLowerInvariant(), @"\s").ToList();
+				foreach (var request in items) {
+					try
+					{
+						Func<string, string[]> splitAndRemoveSuffixes = (string r) => {
+							return Regex.Split(r, @"\s+")
+								.Where(s => !Regex.IsMatch(s, "^i+$"))
+								.ToArray();
+						};
 
-						attendee = collection.FindOne(a =>
-							(
-								nameParts.Intersect(
-									(a.Name.FirstName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).Concat(
-										(a.Name.LastName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries)
-									).ToList()
-								).Count() >= 2 &&
-								(a.EmailAddress == (string)item["EmailAddress"] || a.DOB == DateTime.Parse((string)item["DOB"]))
-							) || (
-								nameParts.Intersect(
-									(a.Name.FirstName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).Concat(
-										(a.Name.LastName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries)
-									).ToList()
-								).Count() >= 1 &&
-								a.EmailAddress == (string)item["EmailAddress"] &&
-								a.DOB == DateTime.Parse((string)item["DOB"])
-							)
-						);
-					} else if (item.ContainsKey("DOB") && !string.IsNullOrEmpty((string) item["DOB"])) {
-						var nameParts = $"{item["First Name"]} {item["Last Name"]}".Trim().ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).ToList();
+						var attendee = all.FirstOrDefault(a =>
+								a.Id == request.Id ||
+								(
+									splitAndRemoveSuffixes(a.Name.FirstName ?? "")
+										.Intersect(
+											splitAndRemoveSuffixes(request.Name.FirstName ?? "")
+										).Any() &&
+									splitAndRemoveSuffixes(a.Name.LastName ?? "")
+										.Intersect(
+											splitAndRemoveSuffixes(request.Name.LastName ?? "")
+										).Any() &&
+									a.DOB.ToString("YYYYMMDD") == request.DOB.ToString("YYYYMMDD")
+								) ||
+								(
+									splitAndRemoveSuffixes(a.Name.LastName ?? "")
+										.Intersect(
+											splitAndRemoveSuffixes(request.Name.LastName ?? "")
+										).Any() &&
+									a.DOB.ToString("YYYYMMDD") == request.DOB.ToString("YYYYMMDD") &&
+									a.EmailAddress.ToLowerInvariant() == request.EmailAddress
+								)
+							);
 
-						attendee = collection.FindOne(a =>
-							nameParts.Intersect(
-								(a.Name.FirstName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).Concat(
-									(a.Name.LastName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries)
-								).ToList()
-							).Count() >= 2 &&
-							a.DOB == DateTime.Parse((string)item["DOB"])
-						);
-					} else if (item.ContainsKey("DOB") && !string.IsNullOrEmpty((string) item["DOB"])) {
-						var nameParts = $"{item["First Name"]} {item["Last Name"]}".Trim().ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries).ToList();
+						if (attendee == null) {
+							request.Status = "notfound";
+							continue;
+						}
 
-						attendee = collection.FindOne(a =>
-							nameParts.Intersect(
-								(a.Name.LastName ?? "").ToLowerInvariant().Split(" ", StringSplitOptions.RemoveEmptyEntries)
-							).Count() >= 1 &&
-							a.EmailAddress == (string)item["EmailAddress"]
-						);
+						requestBody.Values = new List<IList<object>> {
+							new List<object> { "TRUE" }
+						};
+
+						attendee.ThemeCamp = request.ThemeCamp;
+						attendee.Department = request.Department;
+						attendee.PermittedEntryDate = request.PermittedEntryDate;
+						collection.Update(attendee);
+
+						request.Status = attendee.Status;
 					}
+					catch (Exception ex) { Console.WriteLine(ex); request.Status = "error"; continue; }
 
-					var entryDate = DateTime.Parse((string) item["Entry Date Requested"]);
+					var updr = service.Spreadsheets.Values.Update(requestBody, spreadsheetId,
+						$"Early Entry Master List!I2:I");
 
-					results.Add(new Result {
-						Camp = (string) item["Camp"],
-						Department = (string) item["Department"],
-						FirstName = (attendee != null)
-							? attendee.Name.FirstName
-							: (item.ContainsKey("ComboName"))
-								? ((string) item["ComboName"]).Split(' ').First()
-								: (item.ContainsKey("First Name"))
-									? (string) item["First Name"]
-									: "",
-						LastName = (attendee != null)
-							? attendee.Name.LastName
-							: (item.ContainsKey("ComboName"))
-								? ((string) item["ComboName"]).Split(' ').Last()
-								: (item.ContainsKey("Last Name"))
-									? (string) item["Last Name"]
-									: "",
-						DOB = (attendee != null)
-							? attendee.DOB
-							: (item.ContainsKey("DOB") && (string)item["DOB"] != "")
-								? DateTime.Parse((string) item["DOB"])
-								: (DateTime?) null,
-						EntryDate = entryDate,
-						Id = (attendee != null)
-							? attendee.Id
-							: (item.ContainsKey("Registration Number"))
-								? (string) item["Registration Number"]
-								: "",
-						Status = attendee == null ? "NOTFOUND" : attendee.Status,
-						EmailAddress = (string) item["EmailAddress"],
-						Attendee = attendee
-					});
-
-					// TODO: Add EE data for attendee
+					updr.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
+					try
+					{
+						// updr.Execute();
+					}
+					catch { ; }
 				}
 
-				foreach (var result in results.Where(a => a.Attendee.Status == "paid")) {
-					var ent = (result.Department ?? result.Camp);
+				foreach (var result in items) {
+					var ent = (!string.IsNullOrWhiteSpace(result.Department) ? result.Department : result.ThemeCamp);
+					var suffix = result.Name.Suffix != null ? $" {result.Name.Suffix}" : "";
 
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
+					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,10}\t{4,32}\t{5,10}\t{6}",
 						ent.Substring(0, Math.Min(40, ent.Length)),
-						$"{result.FirstName} {result.LastName}",
-						result.EntryDate.ToString("MM/dd/yyyy"),
-						"",
-						result.Status,
-						result.EmailAddress
-					));
-
-					result.Attendee.ThemeCamp = result.Camp;
-					result.Attendee.Department = result.Department;
-					result.Attendee.PermittedEntryDate = result.EntryDate;
-
-					collection.Update(result.Attendee);
-				}
-
-				foreach (var result in results.Where(a => a.Attendee.Status != "paid")) {
-					var ent = (result.Department ?? result.Camp);
-
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
-						ent.Substring(0, Math.Min(40, ent.Length)),
-						$"{result.FirstName} {result.LastName}",
-						result.EntryDate.ToString("MM/dd/yyyy"),
-						"",
-						result.Status,
-						result.EmailAddress
-					));
-
-					result.Attendee.ThemeCamp = result.Camp;
-					result.Attendee.Department = result.Department;
-					result.Attendee.PermittedEntryDate = result.EntryDate;
-
-					collection.Update(result.Attendee);
-				}
-
-				foreach (var result in results.Where(a => a.Attendee == null)) {
-					var ent = (result.Department ?? result.Camp);
-
-					Console.WriteLine(String.Format("{0,40}\t{1,34}\t{2,10}\t{3,5}\t{4,10}\t{5}",
-						ent.Substring(0, Math.Min(40, ent.Length)),
-						$"{result.FirstName} {result.LastName}",
-						result.EntryDate.ToString("MM/dd/yyyy"),
-						"",
+						$"{result?.Name.FirstName} {result?.Name.LastName}{suffix}",
+						result.DOB.ToString("MM/dd/yyyy"),
+						result.PermittedEntryDate?.ToString("MM/dd/yyyy"),
+						result.Id,
 						result.Status,
 						result.EmailAddress
 					));
 				}
 
 				Console.WriteLine();
-				var daily = results
-					.OrderBy(r => r.EntryDate)
-					.GroupBy(r => r.EntryDate.Date);
+				var daily = items
+					.OrderBy(r => r.PermittedEntryDate)
+					.GroupBy(r => r.PermittedEntryDate ?? new DateTime(2018, 06, 13));
 
 				Console.WriteLine("DATE   : POP+ POP= ");
 
@@ -305,8 +231,6 @@
 					));
 				}
 			}
-
-			Console.WriteLine();
 		}
     }
 }

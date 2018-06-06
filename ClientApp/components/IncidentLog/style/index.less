@@ -1,0 +1,93 @@
+@import "~antd/lib/style/index";
+
+.ant-cascader-menus.categoryPopup {
+	ul {
+		overflow: visible;
+		height: auto;
+	}
+}
+
+div#react-app {
+	span.ant-calendar-picker#displayedScheduleDatePicker {
+		border: 0;
+		background-color: rgba(0,0,0,0);
+		input.ant-input {
+			font-size: 1.5em;
+			border: 0;
+			background-color: rgba(0,0,0,0);
+			color: rgb(0, 0, 0);
+			&:hover {
+				border: 0;
+			}
+		}
+	}
+
+	.ant-input.ant-input-no-hover {
+		padding-left: 10px;
+		padding-right: 10px;
+		padding-top: 6px;
+		border-color: @input-border-color;
+		background-color: @input-disabled-bg;
+
+		&:hover {
+			border-color: @input-border-color;
+		}
+	}
+
+	.ant-form span.ant-input-group label.ant-input.ant-checkbox-wrapper {
+		width: 40px;
+		span.ant-checkbox {
+			padding-top: 4px;
+		}
+	}
+
+	@colorNA: rgb(0, 0, 0);
+	@colorLow: rgb(20, 88, 20);
+	@colorMedium: rgb(136, 136, 33);
+	@colorHigh: rgb(167, 96, 15);
+	@colorCritical: rgb(175, 0, 0);
+
+	.ant-radio-button-wrapper {
+		.buttonFade(@class, @color) {
+			&.@{class} {
+				background: fade(@color, 10%);
+				&.ant-radio-button-wrapper-checked {
+					background: fade(@color, 60%);
+					color: rgb(255, 255, 255);
+					border-color: #222;
+					box-shadow: -1px 0 0 0 #222;
+				}
+			}
+		}
+
+		.buttonFade(severityNA, @colorNA);
+		.buttonFade(severityLow, @colorLow);
+		.buttonFade(severityMedium, @colorMedium);
+		.buttonFade(severityHigh, @colorHigh);
+		.buttonFade(severityCritical, @colorCritical);
+	}
+
+	div.ant-table tbody.ant-table-tbody {
+		td {
+			.severityColumnColor(@class, @color) {
+				& div.@{class} {
+					color: rgb(255, 255, 255);
+					background-color: fade(@color, 60%);
+					width: 80px;
+					text-align: center;
+				}
+			}
+
+			.severityColumnColor(severityNA, @colorNA);
+			.severityColumnColor(severityLow, @colorLow);
+			.severityColumnColor(severityMedium, @colorMedium);
+			.severityColumnColor(severityHigh, @colorHigh);
+			.severityColumnColor(severityCritical, @colorCritical);
+		}
+	}
+
+	.ant-table-small > .ant-table-content > .ant-table-body > table {
+		padding: 0;
+		background-color: rgb(255, 255, 255);
+	}
+}
