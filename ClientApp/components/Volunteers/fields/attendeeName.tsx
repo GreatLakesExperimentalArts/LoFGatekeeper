@@ -14,13 +14,14 @@ export interface Props extends React.ClassAttributes<HTMLSpanElement> {
 class AttendeeName extends Component<Props, {}> {
   public render() {
     let { attendee, value, ...props } = this.props;
+    let className = _.get(props, 'className');
     props = _.pickBy(props, v => !_.isFunction(v));
 
     if (attendee) {
       let { name, burnerName } = attendee;
 
       return (
-        <span {...props}>
+        <span {...(_.merge(props, { className: `attendeeName ${className || ''}` }))}>
           {name.nickName || name.firstName}
           {burnerName || '' !== '' ? ` "${burnerName}" ` : ' '}
           {name.lastName}

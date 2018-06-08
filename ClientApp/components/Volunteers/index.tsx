@@ -165,7 +165,6 @@ class VolunteersComponent extends Component<Props, State> {
                 style={{ backgroundColor: '#FFF', marginTop: '10px' }}
                 size={'middle'}
                 rowKey={(record: {}) => (record as ScheduledVolunteerShift).id}
-                loading={this.props.isLoading}
                 locale={{ emptyText: 'No Schedule Loaded' }}
                 pagination={false}
               />

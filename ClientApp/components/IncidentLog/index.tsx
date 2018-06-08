@@ -27,7 +27,6 @@ import { actionCreators as volunteersActionCreators } from 'store/volunteers';
 import { Attendee, AttendeeMap } from 'store/attendees/dto';
 import { VolunteerTimeclockEntry, ScheduledVolunteerShift } from 'store/volunteers';
 import AttendeeName from '../Volunteers/fields/attendeeName';
-import './style';
 
 interface CustomProps extends FormComponentProps {
   active: VolunteerTimeclockEntry[];
@@ -35,8 +34,10 @@ interface CustomProps extends FormComponentProps {
   attendees: AttendeeMap;
 
   hasFirstDataLoaded: boolean;
-  activeLead: OnShiftVolunteer | null;
-  activeShiftLead: OnShiftVolunteer | null;
+  board: Attendee[];
+  esd: Attendee[];
+  activeLead?: OnShiftVolunteer;
+  activeCoordinator?: OnShiftVolunteer;
   volunteersInvolved: OnShiftVolunteer[];
 }
 
@@ -54,13 +55,34 @@ interface State {
   columns: ColumnProps<Row>[];
   severityMap: Map<number, Severity>;
   occurred: Moment;
+
+  categoryValue: string[];
+  selectedRowKeys: string[];
+
+  selectedBoard?: Attendee;
+  selectedESD?: Attendee;
+
+  inputValAttendees?: Attendee[];
+  inputValLead?: OnShiftVolunteer;
+  inputValCoordinator?: OnShiftVolunteer;
+  inputValVolunteers?: Attendee[];
+
+  inputOptionsAttendees?: Attendee[];
+  inputOptionsVolunteers?: Attendee[];
 }
 
 interface Row {
   key: string;
-  category: string;
+  category: string[];
   occured: Moment;
   severity: number;
+  summary: string;
+  bodoc: string;
+  lead: string;
+  coordinator: string;
+  esdAuthBy?: string;
+  attendees?: string[];
+  volunteers?: string[];
 }
 
 interface Category {
@@ -83,7 +105,7 @@ const categories = _.cloneDeepWith([
     { value: 'Medical',
       children: [
         { value: 'ESD Transit' },
-        { value: 'Ambulance On-Site' }
+        { value: 'Ambulance Called' }
       ],
     },
     { value: 'Fire',
@@ -105,6 +127,7 @@ const categories = _.cloneDeepWith([
       children: [
         { value: 'Wristband Issue' },
         { value: 'ID Verification Issue' },
+        { value: 'Off-Site' },
         { value: 'Altercation' },
         { value: 'Consent Violation Report' }
       ]
@@ -136,10 +159,13 @@ const categories = _.cloneDeepWith([
 
 class IncidentLogComponent extends Component<Props, State> {
   state = {
+    categoryValue: [],
+    columns: [],
+    selectedRowKeys: ['0001'],
     formItemSize: {
       width: -1,
       height: -1
-    },
+    } as Dimension,
     occurred: moment(),
     severityMap: new Map<number, Severity>([
       [0, { tableString: 'Memo', radioString: 'Memo', className: 'severityNA' }],
@@ -148,10 +174,15 @@ class IncidentLogComponent extends Component<Props, State> {
       [3, { tableString: 'High', radioString: 'High', className: 'severityHigh' }],
       [4, { tableString: 'Emergency', radioString: 'Emergency', className: 'severityCritical' }]
     ])
-  } as State;
+  };
 
   componentWillMount() {
     this.setState({
+      selectedBoard: (this.props.board && this.props.board.length === 1)
+        ? _.first(this.props.board) || undefined
+        : _.first(this.props.board) || undefined,
+      inputValLead: this.props.activeLead,
+      inputValCoordinator: this.props.activeCoordinator,
       columns: [
         { title: '',
           key: 'severity',
@@ -170,12 +201,20 @@ class IncidentLogComponent extends Component<Props, State> {
         },
         { title: 'Category',
           key: 'category',
-          render: (row: Row) => row.category,
+          render: (row: Row) => _.join(row.category, ' / '),
           width: 310
         },
         { title: 'Summary',
           key: 'summary',
-          render: (row: Row) => ''
+          render: (row: Row) => {
+            return (
+              <span>
+                {_.map(row.attendees || [], a => <AttendeeName key={a} value={a} style={{ fontWeight: 'bold' }} />)}
+                {row.attendees && row.attendees.length > 0 ? ' involved in ' : ''}
+                {row.summary}
+              </span>
+            );
+          }
         }
       ]
     });
@@ -191,37 +230,20 @@ class IncidentLogComponent extends Component<Props, State> {
     };
 
     const mockup: Row[] = [
-      { key: '0001', severity: 4, occured: moment().subtract(0.3, 'hours'), category: 'Medical / Ambulance On-Site' },
+      {
+        key: '0001',
+        severity: 4,
+        occured: moment().subtract(0.3, 'hours'),
+        category: ['Medical', 'Ambulance Called'],
+        summary: 'generator refueling incident',
+        bodoc: '10033-029f383d654c500922f9368167d505cd',
+        lead: '10855-a25f573b1fd4c1eaa2229a98933ad47e',
+        coordinator: '12031-1f74c51339e39cbc442dc44c4a227a73',
+        attendees: ['10747-e36ec58c733e09c1d4d9aea36e4c4010']
+      },
       { key: '0002', severity: 2, occured: moment().startOf('day').add(5.6, 'hours') },
-      { key: '0003', severity: 2, occured: moment().startOf('day').add(1.2, 'hours') },
-      { key: '0004', severity: 2, occured: moment().startOf('day').add(6.3, 'hours') },
-      { key: '0005', severity: 1, occured: moment().startOf('day').add(1.4, 'hours') },
-      { key: '0006', severity: 0, occured: moment().startOf('day').add(8.9, 'hours'), category: 'Volunteer Incident / Professionalism Issue' },
-      { key: '0007', severity: 0, occured: moment().startOf('day').add(11, 'hours') },
-      { key: '0008', severity: 0, occured: moment().startOf('day').add(1, 'hours') },
-      { key: '0009', severity: 0, occured: moment().startOf('day').add(2, 'hours') },
-      { key: '0010', severity: 0, occured: moment().startOf('day').add(3, 'hours') },
-      { key: '0011', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0012', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0013', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0014', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0015', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0016', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0017', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0018', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0019', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0020', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0021', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0022', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0023', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0024', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0025', severity: 0, occured: moment().startOf('day').add(4, 'hours') },
-      { key: '0026', severity: 0, occured: moment().startOf('day').add(4, 'hours') }
+      { key: '0006', severity: 0, occured: moment().startOf('day').add(8.9, 'hours'), category: ['Attendees', 'Off-Site'] }
     ];
-
-    if (!this.props.scheduled) {
-      return (<div>&nbsp;</div>);
-    }
 
     return (
       <div>
@@ -239,7 +261,7 @@ class IncidentLogComponent extends Component<Props, State> {
                 )}
               </FormItem>
               <Measure
-                bounds
+                bounds={true}
                 onResize={(contentRect) => {
                   this.setState({ formItemSize: contentRect.bounds })
                 }}
@@ -255,6 +277,7 @@ class IncidentLogComponent extends Component<Props, State> {
                           options={categories}
                           showSearch={{ matchInputWidth: true }}
                           popupClassName={'categoryPopup'}
+                          onChange={this.onChangeCategory}
                         />
                       )}
                     </div>
@@ -264,9 +287,16 @@ class IncidentLogComponent extends Component<Props, State> {
               <FormItem
                 {...formItemLayout}
                 label="Severity"
+                style={{
+                  display: this.state.categoryValue &&
+                    this.state.categoryValue.length > 0 &&
+                    _.intersection(
+                      this.state.categoryValue, ['Vendors', 'Off-Site']
+                    ).length === 0 ? 'block' : 'none'
+                }}
               >
                 {getFieldDecorator('severity', {
-                  initialValue: '0'
+                  initialValue: 0
                 })(
                   <RadioGroup>
                     <RadioButton value="0" className={'severityNA'}>Memo</RadioButton>
@@ -279,7 +309,49 @@ class IncidentLogComponent extends Component<Props, State> {
               </FormItem>
               <FormItem
                 {...formItemLayout}
+                label="Authorising ESD Member"
+                style={{
+                  display: this.state.categoryValue && _.intersection(
+                      this.state.categoryValue, ['ESD Transit']
+                    ).length > 0 ? 'block' : 'none'
+                }}
+              >
+                <InputGroup compact={true}>
+                    <InputMask
+                      className={`ant-input overlayed`}
+                      style={{ width: '56px' }}
+                      name="wristband"
+                      mask="9999"
+                      maskChar=""
+                      formatChars={{ '9': '[0-9]' }}
+                      autoComplete={'off'}
+                      disabled={true}
+                      value={this.state.selectedESD && this.state.selectedESD.wristband || ''}
+                    />
+                  {getFieldDecorator('esd', {
+                    initialValue: this.state.selectedESD && this.state.selectedESD.id
+                  })(
+                    <Select
+                      style={{ width: `${width - 56}px`}}
+                      onChange={(e) => {
+                        this.setState({ selectedESD: this.props.attendees[`${e}`] });
+                      }}
+                    >
+                      {_.map(this.props.esd,
+                        (a: Attendee) => <Option key={`esd-${a.id}`} value={a.id}><AttendeeName value={a.id} /></Option>
+                      )}
+                    </Select>
+                  )}
+                </InputGroup>
+              </FormItem>
+              <FormItem
+                {...formItemLayout}
                 label="Vendor Name"
+                style={{
+                  display: this.state.categoryValue && _.intersection(
+                      this.state.categoryValue, ['Vendors']
+                    ).length > 0 ? 'block' : 'none'
+                }}
               >
                 {getFieldDecorator('vendor', { })(
                   <Input autoComplete={'off'} />
@@ -287,14 +359,35 @@ class IncidentLogComponent extends Component<Props, State> {
               </FormItem>
               <FormItem
                 {...formItemLayout}
-                label="Summary"
+                label="BODOC"
               >
-                {getFieldDecorator('summary', { })(
-                  <Input
-                    placeholder={'please give a brief description of the incident.'}
-                    autoComplete={'off'}
-                  />
-                )}
+                <InputGroup compact={true}>
+                    <InputMask
+                      className={`ant-input overlayed`}
+                      style={{ width: '56px' }}
+                      name="wristband"
+                      mask="9999"
+                      maskChar=""
+                      formatChars={{ '9': '[0-9]' }}
+                      autoComplete={'off'}
+                      disabled={true}
+                      value={this.state.selectedBoard && this.state.selectedBoard.wristband || ''}
+                    />
+                  {getFieldDecorator('bodoc', {
+                    initialValue: this.state.selectedBoard && this.state.selectedBoard.id
+                  })(
+                    <Select
+                      style={{ width: `${width - 56}px`}}
+                      onChange={(e) => {
+                        this.setState({ selectedBoard: this.props.attendees[`${e}`] });
+                      }}
+                    >
+                      {_.map(this.props.board,
+                        (a: Attendee) => <Option key={`boardOpt-${a.id}`} value={a.id}><AttendeeName value={a.id} /></Option>
+                      )}
+                    </Select>
+                  )}
+                </InputGroup>
               </FormItem>
               <FormItem
                 {...formItemLayout}
@@ -313,14 +406,20 @@ class IncidentLogComponent extends Component<Props, State> {
                       formatChars={{ '9': '[0-9]' }}
                       autoComplete={'off'}
                       onChange={(e) => {
-
+                        let { value } = e.currentTarget;
+                        if (value.length < 4 && this.state.inputValLead) {
+                          this.setState({ inputValLead: null });
+                        }
+                        if (value.length === 4) {
+                          this.setState({ inputValLead: _.find(this.props.attendees, a => a.wristband === value) });
+                        }
                       }}
                     />
                   )}
                   <AttendeeName
                     className={'ant-input ant-input-no-hover'}
                     style={{ width: `${width - 56}px` }}
-                    value={this.props.activeLead && this.props.activeLead.id || ''}
+                    value={this.state.inputValLead && this.state.inputValLead.id || ''}
                   />
                 </InputGroup>
               </FormItem>
@@ -330,7 +429,7 @@ class IncidentLogComponent extends Component<Props, State> {
               >
                 <InputGroup compact={true}>
                   {getFieldDecorator('shift_lead', {
-                    initialValue: this.props.activeShiftLead && this.props.activeShiftLead.wristband || ''
+                    initialValue: this.props.activeCoordinator && this.props.activeCoordinator.wristband || ''
                   })(
                     <InputMask
                       className={`ant-input overlayed`}
@@ -340,65 +439,104 @@ class IncidentLogComponent extends Component<Props, State> {
                       maskChar=""
                       formatChars={{ '9': '[0-9]' }}
                       autoComplete={'off'}
+                      onChange={(e) => {
+                        let { value } = e.currentTarget;
+                        if (value.length < 4 && this.state.inputValLead) {
+                          this.setState({ inputValCoordinator: null });
+                        }
+                        if (value.length === 4) {
+                          this.setState({ inputValCoordinator: _.find(this.props.attendees, a => a.wristband === value) });
+                        }
+                      }}
                     />
                   )}
                   <AttendeeName
                     className={'ant-input ant-input-no-hover'}
                     style={{ width: `${width - 56}px` }}
-                    value={this.props.activeShiftLead && this.props.activeShiftLead.id || ''}
+                    value={this.state.inputValCoordinator && this.state.inputValCoordinator.id || ''}
                   />
                 </InputGroup>
               </FormItem>
               <FormItem
                 {...formItemLayout}
-                label="Volunteer(s) Involved"
+                label="Gate Volunteer(s) Involved"
+                style={{
+                  display: this.state.categoryValue && _.intersection(
+                      this.state.categoryValue, ['Volunteer Incident', 'Altercation']
+                    ).length > 0 ? 'block' : 'none'
+                }}
               >
-                {getFieldDecorator('volunteers', { })(
+                {getFieldDecorator('volunteers', {
+                  initialValue: _.map(this.state.inputValVolunteers, (a: Attendee) => a.wristband)
+                })(
                   <Select
-                    placeholder={''}
+                    placeholder={'enter wristband number(s)'}
                     mode={'tags'}
-                  />
+                    onChange={this.onAttendeeSelect.bind(this, 'inputValVolunteers', 'inputOptionsVolunteers')}
+                  >
+                    {_.map(this.state.inputOptionsVolunteers || [],
+                      (a: Attendee) => <Option key={`esd-${a.id}`} value={a.wristband || ''}><AttendeeName value={a.id} /></Option>
+                    )}
+                  </Select>
                 )}
               </FormItem>
               <FormItem
                 {...formItemLayout}
                 label="Attendee(s) Involved"
+                style={{
+                  display: this.state.categoryValue &&
+                  this.state.categoryValue.length > 0 &&
+                  _.intersection(
+                      this.state.categoryValue, ['Vendors', 'Other', 'Removed from shift']
+                    ).length === 0 ? 'block' : 'none'
+                }}
               >
                 {getFieldDecorator('attendees', { })(
                   <Select
-                    placeholder={''}
+                    placeholder={'enter wristband number(s)'}
                     mode={'tags'}
-                  />
+                    onChange={this.onAttendeeSelect.bind(this, 'inputValAttendees', 'inputOptionsAttendees')}
+                  >
+                    {_.map(this.state.inputOptionsAttendees || [],
+                      (a: Attendee) => <Option key={`esd-${a.id}`} value={a.wristband || ''}><AttendeeName value={a.id} /></Option>
+                    )}
+                  </Select>
                 )}
               </FormItem>
               <FormItem
                 {...formItemLayout}
                 label="Other(s) Involved"
+                style={{
+                  display: this.state.categoryValue &&
+                  this.state.categoryValue.length > 0  &&
+                  _.intersection(
+                      this.state.categoryValue, ['Vendors', 'Other', 'Removed from shift', 'Off-Site']
+                    ).length === 0 ? 'block' : 'none'
+                }}
               >
                 {getFieldDecorator('others', { })(
                   <Select
-                    placeholder={''}
+                    placeholder={'enter name(s)'}
                     mode={'tags'}
                   />
                 )}
               </FormItem>
               <FormItem
                 {...formItemLayout}
-                label="Vehicle(s) Involved"
+                label="Summary"
+                style={{
+                  display: this.state.categoryValue &&
+                    this.state.categoryValue.length > 0 &&
+                    _.intersection(
+                        this.state.categoryValue, ['Vendors']
+                      ).length === 0 ? 'block' : 'none'
+                }}
               >
-                {getFieldDecorator('vehicles', { enabled: false })(
-                  <InputGroup compact={true}>
-                    <Checkbox
-                      className={'ant-input'}
-                      style={{ float: 'left' }}
-                    />
-                    <Select
-                      placeholder={''}
-                      mode={'tags'}
-                      style={{ width: `${width - 40}px`, float: 'left' }}
-                      disabled={true}
-                    />
-                  </InputGroup>
+                {getFieldDecorator('summary', { })(
+                  <Input
+                    placeholder={'please give a brief description of the incident.'}
+                    autoComplete={'off'}
+                  />
                 )}
               </FormItem>
               <FormItem
@@ -408,7 +546,16 @@ class IncidentLogComponent extends Component<Props, State> {
                 }}
               >
                 {getFieldDecorator('reentry', { })(
-                  <Checkbox style={{ paddingLeft: '9px', display: 'block' }}>Re-Entry Permitted</Checkbox>
+                  <Checkbox
+                    style={{
+                      paddingLeft: '9px',
+                      display: this.state.categoryValue && _.intersection(
+                          this.state.categoryValue, ['ESD Transit', 'Off-Site']
+                        ).length > 0 ? 'block' : 'none'
+                    }}
+                  >
+                    Re-Entry Permitted
+                  </Checkbox>
                 )}
                 {getFieldDecorator('followup', { })(
                   <Checkbox style={{ paddingTop: '10px', display: 'block' }}>Follow-Up Required</Checkbox>
@@ -425,7 +572,11 @@ class IncidentLogComponent extends Component<Props, State> {
               columns={this.state.columns}
               dataSource={mockup}
               pagination={{ pageSize: 20 }}
+              expandedRowKeys={this.state.selectedRowKeys}
+              expandRowByClick={true}
+              onExpandedRowsChange={(r) => this.setState({ selectedRowKeys: _.difference(r as string[], this.state.selectedRowKeys) })}
               expandedRowRender={this.incidentExpandedRender}
+              expandIconAsCell={false}
               size={'small'}
             />
           </Col>
@@ -436,12 +587,84 @@ class IncidentLogComponent extends Component<Props, State> {
 
   private incidentExpandedRender =
     (row: Row) => {
+      var label = {
+        span: 8,
+        style: {
+          textAlign: 'right',
+          paddingRight: '8px'
+        }
+      };
+
+      var wristband = {
+        span: 3,
+        className: 'monospace',
+        style: {
+          textAlign: 'center'
+        }
+      };
+
       return (
-        <div>{row.key}</div>
+        <div style={{ paddingBottom: '2em' }}>
+          <Row>
+            <Col span={8}>
+              <Row>
+                <Col {...label}>BODOC</Col>
+                <Col {...wristband}>0002</Col>
+                <Col span={13}><AttendeeName value={this.props.getIdFromWristband('0002')} /></Col>
+              </Row>
+              <Row>
+                <Col {...label}>Gate Lead On-Call</Col>
+                <Col {...wristband}>0001</Col>
+                <Col span={13}><AttendeeName value={this.props.getIdFromWristband('0001')} /></Col>
+              </Row>
+              <Row>
+                <Col {...label}>Shift Lead</Col>
+                <Col {...wristband}>0003</Col>
+                <Col span={13}><AttendeeName value={this.props.getIdFromWristband('0003')} /></Col>
+              </Row>
+            </Col>
+            <Col span={16}>heyo!</Col>
+          </Row>
+        </div>
       );
     }
 
-  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => void) =
+  private onChangeCategory =
+    (e: string[]) => {
+      if (_.difference(e, ['Medical', 'Ambulance Called']).length === 0) {
+        this.props.form.setFieldsValue({ 'severity': '4' });
+      }
+
+      this.setState({ categoryValue: e });
+    }
+
+  private onAttendeeSelect =
+    (valueKey: string, optionKey: string, e: string[]) => {
+      var tags = _.filter<string>(e,
+        (v: any) => typeof v === 'string' && (v as string).length === 4
+      );
+      var vols: Attendee[] = _.filter(_.map(tags,
+        (tag: string) => _.find(this.props.attendees, a => a.wristband === tag)
+      ), a => a || null !== null) as Attendee[];
+
+      var addVols = _.difference<Attendee>(vols, _.get(this.state, optionKey) || []);
+
+      var state = _.set(
+        _.set({}, valueKey, vols),
+        optionKey,
+        [...(_.get(this.state, optionKey) || []), ...addVols]
+      );
+
+      this.setState(state);
+
+      if (tags.length !== e.length) {
+        this.props.form.setFieldsValue({
+          volunteers: _.map(_.get(this.state, valueKey), (a: Attendee) => a.wristband)
+        });
+      }
+    }
+
+  private onSubmit =
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
     }
@@ -471,10 +694,15 @@ export default Form.create()(
         let { attendees } = state.attendees;
         let { active, scheduled } = state.volunteers;
 
+        let board: Attendee[];
+        let esd: Attendee[];
         let activeLead: OnShiftVolunteer | null = null;
-        let activeShiftLead: OnShiftVolunteer | null = null;
+        let activeCoordinator: OnShiftVolunteer | null = null;
 
         if (ownProps && !ownProps.hasFirstDataLoaded && scheduled.length > 0) {
+          esd = _.filter(attendees, a => a.department === 'ESD' && (a.wristband || '') !== '');
+          board = _.filter(attendees, a => a.department === 'Board' && (a.wristband || '') !== '');
+
           activeLead = _.first(loadMatchingOnShiftVolunteers(
               scheduled,
               attendees,
@@ -482,14 +710,14 @@ export default Form.create()(
               moment()
             )) || null;
 
-          activeShiftLead = _.first(loadMatchingOnShiftVolunteers(
+          activeCoordinator = _.first(loadMatchingOnShiftVolunteers(
               scheduled,
               attendees,
               'Volunteer Lead Shift',
               moment()
             )) || null;
 
-          return { ...ownProps, active, scheduled, attendees, activeLead, activeShiftLead };
+          return { ...ownProps, active, scheduled, attendees, board, esd, activeLead, activeCoordinator };
         }
 
         return { ...ownProps, active, scheduled, attendees };

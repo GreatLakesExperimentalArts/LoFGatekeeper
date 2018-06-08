@@ -65,13 +65,15 @@ export interface VolunteersState {
   displayed: ScheduledVolunteerShift[];
   scheduled: ScheduledVolunteerShift[];
   hasLoaded: boolean;
+  boardOnDuty: Attendee | null;
 }
 
 const unloadedState: VolunteersState = {
   active: [],
   displayed: [],
   scheduled: [],
-  hasLoaded: false
+  hasLoaded: false,
+  boardOnDuty: null
 };
 
 export const reducer: Reducer<VolunteersState> =
@@ -103,16 +105,34 @@ export const reducer: Reducer<VolunteersState> =
 
         var filter = moment(action.filter.startOf('day'));
 
-        if (!_.find(scheduled, o => o.id === 'custom')) {
-          var extra = {
-            id: 'custom',
+        if (!_.find(scheduled, o => o.id.startsWith('custom-')) && moment.duration(moment('2018-06-08').diff(moment())).asDays() > 0) {
+          var extra = [{
+            id: 'custom-0001',
             volunteerId: '10855-a25f573b1fd4c1eaa2229a98933ad47e',
             begins: moment().local().startOf('day').add(0, 'hours'),
             ends: moment().local().startOf('day').add(1, 'days'),
             task: 'Lead On Duty'
-          };
+          }, {
+            id: 'custom-0002',
+            volunteerId: '10033-029f383d654c500922f9368167d505cd',
+            begins: moment().local().startOf('day').add(0, 'hours'),
+            ends: moment().local().startOf('day').add(1, 'days'),
+            task: 'BODOC'
+          }, {
+            id: 'custom-0003',
+            volunteerId: '12031-1f74c51339e39cbc442dc44c4a227a73',
+            begins: moment().local().startOf('day').add(0, 'hours'),
+            ends: moment().local().startOf('day').add(1, 'days'),
+            task: 'Volunteer Lead Shift'
+          }, {
+            id: 'custom-0004',
+            volunteerId: '9609-f8e921dd4cda1fa517f0e373d7642ac7',
+            begins: moment().local().startOf('day').add(0, 'hours'),
+            ends: moment().local().startOf('day').add(1, 'days'),
+            task: 'Volunteer Shift'
+          }];
 
-          scheduled = [ extra, ...scheduled ];
+          scheduled = [ ...extra, ...scheduled ];
         }
 
         let displayed = _.filter(scheduled, row => {

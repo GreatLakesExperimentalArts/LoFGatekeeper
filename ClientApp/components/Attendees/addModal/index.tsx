@@ -17,8 +17,6 @@ import $ from 'jquery';
 import { actionCreators } from 'store/attendees';
 import { Attendee } from 'store/attendees/dto';
 
-import './index.less';
-
 interface CustomProps extends FormComponentProps {
   onOk?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onCancel?: (event: React.MouseEvent<HTMLButtonElement>) => void;

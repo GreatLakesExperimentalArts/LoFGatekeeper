@@ -176,28 +176,28 @@
 							continue;
 						}
 
-						requestBody.Values = new List<IList<object>> {
-							new List<object> { "TRUE" }
-						};
-
-						attendee.ThemeCamp = request.ThemeCamp;
-						attendee.Department = request.Department;
-						attendee.PermittedEntryDate = request.PermittedEntryDate;
-						collection.Update(attendee);
-
 						request.Status = attendee.Status;
+						request.Attached = attendee;
 					}
 					catch (Exception ex) { Console.WriteLine(ex); request.Status = "error"; continue; }
+				}
 
-					var updr = service.Spreadsheets.Values.Update(requestBody, spreadsheetId,
-						$"Early Entry Master List!I2:I");
+				foreach (var group in items.ToList().GroupBy(i => i.Id)) {
+					if (group.Count() > 1) {
+						foreach (var item in group.Skip(1)) {
+							items.Remove(item);
+						}
 
-					updr.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
-					try
-					{
-						// updr.Execute();
+						group.First().Status = "duplicates";
+						continue;
 					}
-					catch { ; }
+
+					var request = group.First();
+					var attendee = request.Attached;
+					attendee.ThemeCamp = request.ThemeCamp;
+					attendee.Department = request.Department;
+					attendee.PermittedEntryDate = request.PermittedEntryDate;
+					collection.Update(attendee);
 				}
 
 				foreach (var result in items) {

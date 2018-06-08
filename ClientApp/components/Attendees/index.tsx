@@ -22,7 +22,6 @@ import Buttons from './fields/buttons';
 import RemovedWristbands from './fields/removedWristbands';
 import ArrivalDate from './fields/arrivalDate';
 import AddModal from './addModal';
-import './style';
 
 import * as _ from 'lodash';
 import $ from 'jquery';

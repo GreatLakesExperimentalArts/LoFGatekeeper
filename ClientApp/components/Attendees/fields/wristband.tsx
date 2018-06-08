@@ -9,7 +9,6 @@ import { actionCreators, Attendee } from 'store/attendees';
 import { StatefulComponentProps, StatefulRow } from 'store/attendees/table';
 
 import $ from 'jquery';
-import '../style';
 
 interface Props extends StatefulComponentProps {
   checkIfWristbandUsed: (wristband: string, index: number, callback: (used: boolean) => void) => void;

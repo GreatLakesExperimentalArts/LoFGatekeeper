@@ -64,5 +64,8 @@
 
 		[JsonIgnore]
 		public int Index { get; set; }
+
+		[JsonIgnore]
+		public Attendee Attached { get; set; }
     }
 }

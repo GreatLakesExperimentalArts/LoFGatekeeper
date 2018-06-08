@@ -1,73 +1,33 @@
 namespace LoFGatekeeper
 {
-	using APIology.ServiceProvider;
-	using Autofac;
-	using Hubs;
+    using Autofac;
+    using Autofac.Extensions.DependencyInjection;
+    using Hubs;
 	using LiteDB;
 	using Microsoft.AspNetCore.Builder;
 	using Microsoft.AspNetCore.Hosting;
-	using Microsoft.AspNetCore.SignalR;
+    using Microsoft.AspNetCore.Hosting.Server.Features;
+    using Microsoft.AspNetCore.SignalR;
 	using Microsoft.AspNetCore.SpaServices.Webpack;
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
-	using Serilog;
-	using System.IO;
-	using System.Reflection;
-	using Topshelf;
+    using Microsoft.Extensions.Logging;
+    using Serilog;
+    using System;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
 
-	public class Service : AspNetCoreServiceProvider<Service, Configuration>
-	{
+	public class Service
+    {
+		public static string EnvironmentName { get; protected set; }
+
+		public IHostingEnvironment Environment { get; private set; }
+
+		public static Serilog.ILogger Logger { get; private set; }
+
 		public static void Main() {
-			Run();
-		}
-
-		public override bool Start(HostControl hostControl)
-		{
-			var sep = Path.DirectorySeparatorChar;
-			DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
-
-			try
-			{
-				while (new FileInfo($@"{info.FullName}{sep}ClientApp{sep}boot-client.tsx").Exists == false) {
-					info = info.Parent;
-				};
-			}
-			catch
-			{
-				info = new DirectoryInfo(Directory.GetCurrentDirectory());
-			}
-
-			Logger.Information($@"Application current directory set to {info.FullName}");
-
-			Directory.SetCurrentDirectory(info.FullName);
-
-			if (!base.Start(hostControl))
-				return false;
-
-			return true;
-		}
-
-		public override bool Stop(HostControl hostControl)
-		{
-			if (!base.Stop(hostControl))
-				return false;
-
-			return true;
-		}
-
-		public override IConfigurationBuilder BuildConfiguration(IConfigurationBuilder configuration)
-		{
-			string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-			return configuration
-				.AddEnvironmentVariables()
-				.AddJsonFile($@"{exeDir}/config.json", false, true)
-				.AddJsonFile($@"{exeDir}/config.overrides.json", true, true);
-		}
-
-		public override void BuildLogger(LoggerConfiguration logging)
-		{
-			logging
+			Logger = new LoggerConfiguration()
 				.Enrich.WithMachineName()
 				.Enrich.FromLogContext()
 				.WriteTo.LiterateConsole()
@@ -75,37 +35,92 @@ namespace LoFGatekeeper
 					.RollingFile(
 						pathFormat: "data/logs/log-{Date}.txt",
 						buffered: true
-					));
+					))
+				.CreateLogger();
+
+			try
+			{
+				var sep = Path.DirectorySeparatorChar;
+				DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+				try
+				{
+					while (new FileInfo($@"{info.FullName}{sep}ClientApp{sep}boot-client.tsx").Exists == false) {
+						info = info.Parent;
+					};
+				}
+				catch
+				{
+					info = new DirectoryInfo(Directory.GetCurrentDirectory());
+				}
+
+				Logger.Information($@"Application current directory set to {info.FullName}");
+
+				Directory.SetCurrentDirectory(info.FullName);
+
+				Logger.Debug("Building web server configuration");
+
+				var host = new WebHostBuilder()
+					.UseKestrel()
+					.UseContentRoot(Directory.GetCurrentDirectory())
+					.UseStartup<Startup>()
+					.UseSerilog(Logger)
+					.Build();
+
+				Logger.Debug("Starting web server");
+				host.Run();
+			}
+			catch(Exception e) {
+				Logger.Fatal("Unknown exception in web server caused failure", e);
+			}
+			finally {
+				Log.CloseAndFlush();
+			}
+		}
+	}
+
+	public class Startup
+	{
+		private static ILifetimeScope Container { get; set; }
+
+		public Startup(IHostingEnvironment env)
+		{
 		}
 
-		public override void BuildDependencyContainer(ContainerBuilder builder)
+		public IServiceProvider ConfigureServices(IServiceCollection services)
 		{
 			string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			builder.Register(context => new LiteDatabase("data/LoFData.db"))
-				.OwnedByLifetimeScope()
-				.SingleInstance();
 
-			base.BuildDependencyContainer(builder);
-		}
-
-		public override void ConfigureAspNetCore(IServiceCollection services)
-		{
-			services.AddCors();
+			services.AddLogging();
 			services.AddMvc()
 				.AddApplicationPart(typeof(Service).GetTypeInfo().Assembly)
 				.AddControllersAsServices();
+			services.AddCors();
 			services.AddSignalR();
-		}
 
-		public override void BuildAspNetCoreDependencySubcontainer(ContainerBuilder builder)
-		{
-			builder.RegisterInstance(Logger)
-				.As<ILogger>()
+			var builder = new ContainerBuilder();
+
+			builder.Register(ctx => {
+					return new ConfigurationBuilder()
+						.AddEnvironmentVariables()
+						.AddJsonFile($@"{exeDir}/config.json", false, true)
+						.AddJsonFile($@"{exeDir}/config.overrides.json", true, true);
+				})
+				.SingleInstance()
+				.PropertiesAutowired(PropertyWiringOptions.PreserveSetValues)
+				.AutoActivate()
+				.AsImplementedInterfaces()
+				.AsSelf();
+
+			builder.Populate(services);
+
+			builder.RegisterInstance(Service.Logger)
+				.As<Serilog.ILogger>()
 				.ExternallyOwned()
 				.SingleInstance();
 
-			builder.RegisterInstance(LazyContainer.Value.Resolve<LiteDatabase>())
-				.ExternallyOwned()
+			builder.Register(context => new LiteDatabase("data/LoFData.db"))
+				.OwnedByLifetimeScope()
 				.SingleInstance();
 
 			builder.RegisterType<AttendeeHubContext>()
@@ -119,10 +134,16 @@ namespace LoFGatekeeper
 			builder.RegisterAssemblyTypes(typeof(Service).GetTypeInfo().Assembly)
 				.Where(t => typeof(Hub).IsAssignableFrom(t))
 				.ExternallyOwned();
+
+			Container = builder.Build();
+
+			return new AutofacServiceProvider(Container);
 		}
 
-		public override void BuildAspNetCoreApp(IApplicationBuilder app, IHostingEnvironment env)
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IApplicationLifetime appLifetime)
 		{
+			loggerFactory.AddSerilog(Service.Logger);
+
 			app.UseCors(builder =>
 				builder.AllowAnyOrigin()
 					.AllowAnyHeader()
@@ -130,7 +151,7 @@ namespace LoFGatekeeper
 
 			if (env.IsDevelopment())
 			{
-				Logger.Information("Using Webpack Middleware");
+				Service.Logger.Information("Using Webpack Middleware");
 
 				app.UseDeveloperExceptionPage();
 
@@ -158,6 +179,8 @@ namespace LoFGatekeeper
 					name: "spa-fallback",
 					defaults: new { controller = "Home", action = "Index" });
 			});
+
+			appLifetime.ApplicationStopped.Register(() => Container.Dispose());
 		}
 	}
 }
