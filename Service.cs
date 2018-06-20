@@ -61,7 +61,12 @@ namespace LoFGatekeeper
 				Logger.Debug("Building web server configuration");
 
 				var host = new WebHostBuilder()
-					.UseKestrel()
+					.UseKestrel(options => {
+						options.AddServerHeader = false;
+						options.ListenAnyIP(443, listen => {
+							listen.UseHttps("data/certs/certfile.pfx", "");
+						});
+					})
 					.UseContentRoot(Directory.GetCurrentDirectory())
 					.UseStartup<Startup>()
 					.UseSerilog(Logger)

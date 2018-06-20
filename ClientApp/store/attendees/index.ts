@@ -207,12 +207,13 @@ const unloadedState: AttendeesValueState = {
 const MatchEval = (n: Pick<Attendee, any>, s: string) => eval(s);
 
 const StandardSort = (attendees: ArrayLike<Attendee>, defaultPermittedDate: Moment) => {
-  return _.sortBy(attendees, [
-    (val: Attendee) => val.wristband !== '' && val.wristband,
+  return _.orderBy(attendees, [
+    (val: Attendee) => (val.arrivalDate !== null && val.arrivalDate),
+    (val: Attendee) => (val.wristband !== '' && val.wristband) || '0000',
     (val: Attendee) => (val.permittedEntryDate !== null && val.permittedEntryDate) || defaultPermittedDate,
     (val: Attendee) => (val.name.lastName || '').toLowerCase(),
     (val: Attendee) => (val.name.firstName || '').toLowerCase()
-  ]);
+  ], ['desc', 'asc', 'desc', 'asc', 'asc']);
 };
 
 export const reducer: Reducer<AttendeesValueState> = (state: AttendeesValueState, incomingAction: Action) => {

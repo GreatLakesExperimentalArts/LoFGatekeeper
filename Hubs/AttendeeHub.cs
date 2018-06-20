@@ -53,22 +53,31 @@ namespace LoFGatekeeper.Hubs
 		{
 			var collection = Database.GetCollection<Attendee>("attendees");
 
-			request.Attendee.Parents = request.Parents;
-			request.Attendee.ArrivalDate = DateTime.Now;
+			var attendee = new Attendee();
+			attendee.Name = new BinaryFog.NameParser.ParsedFullName {
+				FirstName = request.Attendee.Name.FirstName,
+				LastName = request.Attendee.Name.LastName
+			};
+
+			attendee.DOB = request.Attendee.DOB;
+			attendee.Parents = request.Parents;
+			attendee.ArrivalDate = DateTime.Now;
+			attendee.Status = "paid";
 
 			using (var hash = MD5.Create()) {
 				var next = collection.FindAll().Max(a => Int32.Parse(a.Id.Split('-')[0])) + 1;
-				var uniq = hash.ComputeHash(Encoding.UTF8.GetBytes($"{next} {request.Attendee.EmailAddress}"));
+				var uniq = hash.ComputeHash(Encoding.UTF8.GetBytes($"{next} {attendee.EmailAddress}"));
 				var utag = BitConverter.ToString(uniq)
 					.Replace("-", string.Empty)
 					.ToLower();
 
-				request.Attendee.Id = $"{next}-{utag}";
+				attendee.Id = $"{next}-{utag}";
 			}
 
-			collection.Insert(request.Attendee);
+			collection.Insert(attendee);
+			Logger.Information(JsonConvert.SerializeObject(attendee, Formatting.Indented));
 
-			await Clients.All.SendAsync("Add", request.Attendee);
+			await Clients.All.SendAsync("Add", attendee);
 		}
 		#endregion
 
