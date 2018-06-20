@@ -210,12 +210,12 @@ class AttendeesTable extends StatefulTable<TableState> {
             render: (text: string, attendee: Attendee) =>
               <Button icon="edit" onClick={(e) => this.onShowModal(e, attendee)} />
           },
-          { /* Delete Button */
+          /* {
             title: '',
             width: 22,
             render: (text: string, attendee: Attendee) =>
               <Button icon="delete" type="danger" onClick={(e) => this.props.deleteAttendee(attendee.id)} />
-          }
+          } */
         ]
       });
 
@@ -366,7 +366,7 @@ class AttendeesTable extends StatefulTable<TableState> {
           <AddModal
             onOk={(e) => this.setState({ modal: null })}
             onCancel={(e) => this.setState({ modal: null })}
-            attendee={this.props.attendees[attendee.id]}
+            attendee={attendee && this.props.attendees[attendee.id]}
           />
         )
       });

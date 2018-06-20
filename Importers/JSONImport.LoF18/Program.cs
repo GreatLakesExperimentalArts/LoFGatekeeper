@@ -71,6 +71,22 @@
 
 				Console.WriteLine($"{dbdata.Count()} rows in database");
 
+				var refunds = dbdata.Concat(import)
+					.GroupBy(o => o.Id)
+					.Where(o => o.Count() != 1 && o.Select(g => g.Status).Count() == 2)
+					.Where(o => o.Select(g => g.Status).Contains("refunded"))
+					.Select(o => o.FirstOrDefault(g => g.Status != "refunded"))
+					.ToList();
+
+				foreach (var row in refunds) {
+					if (row == null) continue;
+
+					row.Status = "refunded";
+					collection.Update(row);
+					Console.WriteLine(JsonConvert.SerializeObject(row, Formatting.Indented));
+				}
+
+				/*
 				var newData = dbdata.Concat(import)
 					.GroupBy(o => o.Id)
 					.Where(o => o.Count() == 1)
@@ -92,6 +108,7 @@
 				if (updData.Count > 0) {
 					Console.WriteLine(JsonConvert.SerializeObject(updData, Formatting.Indented));
 				}
+				*/
 			}
 		}
     }
