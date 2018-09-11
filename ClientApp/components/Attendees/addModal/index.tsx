@@ -17,8 +17,6 @@ import $ from 'jquery';
 import { actionCreators } from 'store/attendees';
 import { Attendee } from 'store/attendees/dto';
 
-import './index.less';
-
 interface CustomProps extends FormComponentProps {
   onOk?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onCancel?: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -65,27 +63,6 @@ const defaultState: State = {
 class AddAttendeeModal extends Component<Props, State> {
   componentWillMount() {
     this.setState({ ...defaultState });
-  }
-
-  componentDidMount() {
-    const { setFields, validateFields } = this.props.form;
-
-    if (this.props.attendee) {
-      let a = this.props.attendee;
-      setFields({
-        'firstName': { value: a.name.firstName || '' },
-        'lastName': { value: a.name.lastName || '' },
-        'nickName': { value: a.name.nickName || '' },
-        'burnerName': { value: a.burnerName || '' },
-        'dob': { value: a.dob.format('MM/DD/YYYY') },
-        'emailAddress': { value: a.emailAddress || '' },
-        'wristband': { value: a.wristband || '' },
-        'parents': { value: toContentState(_.join(_.map(a.parents, (i) => {
-          return `@${this.props.getWristbandFromId(i)}`;
-        }), ', ')) }
-      });
-      validateFields(() => { return; });
-    }
   }
 
   render() {
@@ -167,25 +144,38 @@ class AddAttendeeModal extends Component<Props, State> {
                 { required: true, message: 'First Name is required' },
                 { validator: this.validateName }
               ],
-              validateTrigger: ['onBlur']
+              validateTrigger: ['onBlur'],
+              initialValue: this.props.attendee && this.props.attendee.name.firstName
             })(
               <Input />
             )}
           </FormItem>
           <FormItem {...formItemLayout} label="Last name">
             {getFieldDecorator('lastName', {
-              rules: [{ required: true, message: 'Last Name is required' }]
+              rules: [{ required: true, message: 'Last Name is required' }],
+              initialValue: this.props.attendee && this.props.attendee.name.lastName
             })(
               <Input />
             )}
           </FormItem>
           <FormItem {...formItemLayout} label="Preferred name">
-            {getFieldDecorator('nickName', {})(
+            {getFieldDecorator('nickName', {
+              initialValue: (this.props.attendee && this.props.attendee.name.nickName) || ''
+            })(
               <Input />
             )}
           </FormItem>
           <FormItem {...formItemLayout} label="Burner name">
-            {getFieldDecorator('burnerName', {})(
+            {getFieldDecorator('burnerName', {
+              initialValue: (this.props.attendee && this.props.attendee.burnerName) || ''
+            })(
+              <Input />
+            )}
+          </FormItem>
+          <FormItem {...formItemLayout} label="E-Mail">
+            {getFieldDecorator('emailAddress', {
+              initialValue: (this.props.attendee && this.props.attendee.emailAddress) || ''
+            })(
               <Input />
             )}
           </FormItem>
@@ -198,7 +188,8 @@ class AddAttendeeModal extends Component<Props, State> {
                 ],
                 normalize: this.getNormalizedDOB,
                 getValueFromEvent: this.getValueForDOB,
-                validateTrigger: ['onChange', 'onBlur']
+                validateTrigger: ['onChange', 'onBlur'],
+                initialValue: (this.props.attendee && this.props.attendee.dob.format('MM/DD/YYYY')) || ''
               })(
                 <InputMask
                   className="ant-input ant-input-lg overlayed"
@@ -219,12 +210,6 @@ class AddAttendeeModal extends Component<Props, State> {
               )}
             </div>
           </FormItem>
-          <FormItem {...formItemLayout} label="E-Mail">
-            {getFieldDecorator('emailAddress', {
-            })(
-              <Input />
-            )}
-          </FormItem>
           <FormItem {...formItemLayout} label="Wristband">
             <div data-placeholder={this.state.wristbandPlaceholder}>
               {getFieldDecorator('wristband', {
@@ -233,7 +218,8 @@ class AddAttendeeModal extends Component<Props, State> {
                   { validator: this.validateWristbandValue }
                 ],
                 getValueFromEvent: this.getValueForWristband,
-                validateTrigger: ['onChange', 'onBlur']
+                validateTrigger: ['onChange', 'onBlur'],
+                initialValue: (this.props.attendee && this.props.attendee.wristband) || ''
               })(
                 <InputMask
                   className={`ant-input ant-input-lg overlayed`}
@@ -251,7 +237,11 @@ class AddAttendeeModal extends Component<Props, State> {
           {this.state.parentsVisible ? (
             <FormItem {...formItemLayout} label="Parents">
               {getFieldDecorator('parents', {
-                rules: [{ validator: this.validateParents }]
+                rules: [{ validator: this.validateParents }],
+                initialValue: this.props.attendee &&
+                  toContentState(_.join(_.map(this.props.attendee.parents, (i) => {
+                    return `@${this.props.getWristbandFromId(i)}`;
+                  }), ', '))
               })(
                 <Mention
                   disabled={!this.state.parentsEnabled}

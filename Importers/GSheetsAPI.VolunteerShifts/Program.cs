@@ -71,6 +71,10 @@
 
 				using (var db = new LiteDB.LiteDatabase(@"LoFData.db"))
 				{
+					{
+						var collection = db.GetCollection<VolunteerTimeclockEntry>("volunteerHours");
+						collection.Delete(row => true);
+					}
 
 					var shifts = ilists.Select(item => new ScheduledVolunteerShift {
 							Task = $"{item[0]}",

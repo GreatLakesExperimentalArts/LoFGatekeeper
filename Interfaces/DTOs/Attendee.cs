@@ -54,12 +54,18 @@
 
         public bool Equals(Attendee x, Attendee y)
         {
-            return x.Id == y.Id;
+            return x.Id == y.Id && x.Wristband == y.Wristband && x.Name == y.Name;
         }
 
         public int GetHashCode(Attendee obj)
         {
             return obj.Id.GetHashCode();
         }
+
+		[JsonIgnore]
+		public int Index { get; set; }
+
+		[JsonIgnore]
+		public Attendee Attached { get; set; }
     }
 }

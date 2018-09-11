@@ -37,5 +37,5 @@ RUN tar -xzf "nodejs.tar.gz" -C /usr/local --strip-components=1 \
     && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
     && npm i npm@latest -g
 
-EXPOSE 80
+EXPOSE 443
 ENTRYPOINT ["dotnet", "LoFGatekeeper.dll"]

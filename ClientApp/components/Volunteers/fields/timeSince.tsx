@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Component } from 'react';
-import { DateTime } from 'luxon';
+import moment, { Moment } from 'moment';
+import 'moment-duration-format';
 
 export interface Props {
-  value: DateTime | string;
+  value: Moment | string;
 }
 
 interface State {
@@ -32,14 +33,12 @@ export class TimeSince extends Component<Props, State> {
 
   private tick: (() => void) =
     () => {
-      let value: DateTime = typeof this.props.value === 'string' ?
-        DateTime.fromISO(this.props.value) :
+      let value: Moment = typeof this.props.value === 'string' ?
+        moment(this.props.value) :
         this.props.value;
 
       this.setState({
-        output: DateTime.local()
-          .diff(value, ['hours', 'minutes', 'seconds'])
-          .toFormat('hh:mm:ss')
+        output: moment.duration(moment().diff(value)).format('hh:mm:ss')
       });
     }
 }

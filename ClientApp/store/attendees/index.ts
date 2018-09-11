@@ -1,6 +1,6 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator, Store } from 'redux';
-import { AppThunkAction, ApplicationState } from '../';
+import { AppThunkAction, ApplicationState, ValueAction } from '../';
 import * as signalR from '@aspnet/signalr';
 import { Moment } from 'moment';
 import moment from 'moment';
@@ -144,6 +144,12 @@ export const actionCreators = {
       const state = getState().attendees as AttendeesState;
       let { attendees } = state;
       return (_.find(attendees, (a) => a.id === id) || { wristband: null }).wristband;
+    },
+  getIdFromWristband: (wristband: string): ValueAction =>
+    (dispatch, getState) => {
+      const state = getState().attendees as AttendeesState;
+      let { attendees } = state;
+      return (_.find(attendees, (a) => a.wristband === wristband) || { id: null }).id || '';
     },
   getDisplayNameFromId: (id: string): AppThunkAction<KnownAction> =>
     (dispatch, getState) => {

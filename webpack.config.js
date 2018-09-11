@@ -100,7 +100,7 @@ module.exports = (env) => {
           new CssRewritePlugin({
               fileReg: new RegExp('site.css'),
               processor: function (source) {
-                  return source.replace(/https:\/\/at\.alicdn\.com\/t\/font_zck90zmlh7hf47vi/g, '/fonts/anticon')
+                  return source.replace(/https:\/\/at\.alicdn\.com\/t\/font_[a-z0-9_]+/g, '/fonts/anticon')
               }
           }),
           new webpack.DllReferencePlugin({
