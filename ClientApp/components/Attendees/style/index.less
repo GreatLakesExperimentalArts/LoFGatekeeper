@@ -1,0 +1,89 @@
+@placeholderOpacity: 0.3;
+@font-family-monospace: "Ubuntu Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+div[data-placeholder] {
+    position: relative;
+
+    &::after {
+        font-family: @font-family-monospace;
+        position: absolute;
+        left: 8px;
+        top: 2px;
+        content: attr(data-placeholder);
+        pointer-events: none;
+        opacity: @placeholderOpacity;
+    }
+}
+
+button.ant-btn-background-ghost.ant-btn-circle.ant-btn-sm {
+	padding-top: 2px;
+
+	&.ant-btn-danger:hover {
+		background-color: #f04134 !important;
+		color: #fff;
+	}
+
+	&.ant-btn-primary:hover {
+		background-color: #108ee9 !important;
+		color: #fff;
+	}
+}
+
+span.ageSpan {
+	font-size: 0.8em;
+}
+
+div.ant-table-wrapper.attendee-table {
+	td:nth-child(1n+8) {
+		padding: 0;
+
+		button.ant-btn.ant-btn-icon-only {
+			padding: 0 2px;
+			margin: 0;
+			height: auto;
+			border: 0;
+			background-color: transparent;
+			font-size: 18px;
+
+			&.ant-btn-danger:hover {
+				color: multiply(#f04134, #999999) !important;
+			}
+		}
+	}
+}
+
+.ant-form-item-control {
+	line-height: 1.0;
+}
+
+input.overlayed {
+    font-family: @font-family-monospace;
+
+    .outline(@class, @color) {
+        &.@{class} {
+            outline-color: @color;
+            -webkit-border-start: 1px solid @color;
+            -webkit-border-end: 1px solid @color;
+            -webkit-border-before: 1px solid @color;
+            -webkit-border-after: 1px solid @color;
+        }
+	}
+
+	&[disabled],
+	&[disabled]:hover {
+		.outline(overlayed, rgba(255,255,255,0));
+		background-color: rgba(255,255,255,0);
+	}
+
+    .outline(success, green);
+    .outline(warning, orange);
+    .outline(failure, red);
+
+    &::placeholder,
+    &::-webkit-input-placeholder,
+    &:-moz-placeholder,
+    &::-moz-placeholder,
+    &:-ms-input-placeholder {
+        opacity: @placeholderOpacity;
+    }
+}

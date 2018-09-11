@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "es6",
+    "jsx": "react",
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "skipDefaultLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "lib": ["es6", "dom"],
+    "types": ["webpack-env"],
+    "paths": {
+      "store": ["ClientApp/store"],
+      "store/*": ["ClientApp/store/*"]
+    }
+  },
+  "exclude": [
+    "bin"
+  ]
+}

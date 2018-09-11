@@ -1,42 +1,66 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <AssemblyName>LoFGatekeeper</AssemblyName>
     <AssemblyTitle>LoF Gatekeeper</AssemblyTitle>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net461</TargetFramework>
-    <DefaultItemExcludes>$(DefaultItemExcludes);frontend\**\*.*</DefaultItemExcludes>
-    <Version>1.0.0</Version>
-    <InformationalVersion>1.0.0</InformationalVersion>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Interfaces\**\*.*;Importers\**\*.*;*docker*;*-lock.json;.*ignore</DefaultItemExcludes>
+    <DockerComposeProjectPath>docker-compose.dcproj</DockerComposeProjectPath>
+    <MvcRazorCompileOnPublish>true</MvcRazorCompileOnPublish>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="APIology.ServiceProvider.AspNetCore" Version="1.0.3" />
-    <PackageReference Include="LiteDB" Version="3.1.1" />
-    <PackageReference Include="NameParserSharp" Version="1.2.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="1.1.2" />
-    <PackageReference Include="Microsoft.AspNetCore.WebSockets.Server" Version="0.1.0" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.1.0-rc1-final" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="2.1.0-rc1-final" />
+    <PackageReference Include="APIology.ServiceProvider" version="1.0.9" Version="1.0.9" />
+    <PackageReference Include="APIology.ServiceProvider.AspNetCore" version="1.0.26" Version="1.0.26" />
+    <PackageReference Include="Autofac" Version="4.6.2" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.2.2" />
+    <PackageReference Include="BinaryFog.NameParser" Version="2.3.0" />
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
+    <PackageReference Include="LiteDB" Version="4.1.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Serilog" Version="2.6.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="2.1.2" />
-    <PackageReference Include="Serilog.Exceptions" Version="2.4.1" />
+    <PackageReference Include="Serilog.Exceptions" Version="4.0.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="1.0.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="1.1.0" />
-    <PackageReference Include="Serilog.Sinks.Seq" Version="3.3.2" />
-    <PackageReference Include="Topshelf" Version="4.0.3" />
+    <PackageReference Include="Serilog.Sinks.Literate" Version="3.0.0" />
+    <PackageReference Include="Serilog.Sinks.RollingFile" Version="3.3.0" />
+    <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
+    <PackageReference Include="Topshelf" Version="4.1.0.117-develop" />
+    <PackageReference Include="Topshelf.Serilog" Version="4.1.0.117-develop" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LoFGatekeeper.Interfaces\LoFGatekeeper.Interfaces.csproj" />
+    <ProjectReference Include="Interfaces\LoFGatekeeper.Interfaces.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="config.json">
+    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="ClientApp\**" />
+    <Content Update="config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Update="LoFData.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Middleware\WebSockets\" />
-  </ItemGroup>
-  <Target Name="CompileFrontend" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release'">
-    <Exec Command="yarn run build" WorkingDirectory="frontend" />
+  <Target Name="DebugRunWebpack" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Exec Command="node node_modules/webpack/bin/webpack.js --config webpack.config.vendor.js" />
+    <Exec Command="node node_modules/webpack/bin/webpack.js" />
+  </Target>
+  <Target Name="RunWebpack" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' != 'Debug'">
+    <Exec Command="node node_modules/webpack/bin/webpack.js --config webpack.config.vendor.js" />
+    <Exec Command="node node_modules/webpack/bin/webpack.js" />
     <ItemGroup>
-      <FrontendFiles Include="$(MSBuildProjectDirectory)\frontend\build\**" />
+      <DistFiles Include="wwwroot\dist\**; ClientApp\dist\**" />
+      <ResolvedFileToPublish Include="@(DistFiles-&gt;'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
     </ItemGroup>
-    <Copy SourceFiles="@(FrontendFiles)" DestinationFiles="@(FrontendFiles->'$(OutputPath)\wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" /> 
   </Target>
 </Project>
